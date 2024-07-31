@@ -9,7 +9,7 @@ const PORTAPI = process.env.PORT || 3001
 
 
 
-mongoose.connect(`mongodb+srv://HostMine:qwe123@cluster0.xbbyrq7.mongodb.net/`)
+mongoose.connect(process.env.URLMDB)
 .then(() => {
     console.log("Connected MongoDB");
 })

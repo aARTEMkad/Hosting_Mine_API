@@ -18,7 +18,6 @@ export const ServerSchema = new mongoose.Schema({
 
     path: {
         type: String,
-        required: true, 
     }
 })
 
