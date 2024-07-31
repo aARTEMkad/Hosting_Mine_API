@@ -1,6 +1,6 @@
 import mongoose from "mongoose";
 
-export const ServerSchema = new mongoose.Schema({
+const ServerSchema = new mongoose.Schema({
     name: {
         type: String,
         required: true,
@@ -21,3 +21,4 @@ export const ServerSchema = new mongoose.Schema({
     }
 })
 
+export default mongoose.model('Server', ServerSchema)

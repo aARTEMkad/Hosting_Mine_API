@@ -1,10 +1,10 @@
-import { ServerSchema } from "../model/_server";
+import ServerSchema from "../model/_server.js";
 import fs from 'fs';
 
 const pathServers = '/home/artem/ServersMinecraft'
 const pathCoreServers = '/home/artem/CoreMinecraft'
 
-export class Server {
+class Server {
 
     async getListServers(req, res) {
         try {
@@ -18,15 +18,16 @@ export class Server {
 
     async createServer(req, res) { // Make create server in mongodb and add some server in path
         try {
+            console.log(req.body);
             const newServer = new ServerSchema({
                 name: req.body.name,
                 version: req.body.version,
                 core: req.body.core,
             }) 
             
-            fs.mkdir(pathServers + `/${newServer.name}`);
-            fs.copyFile(pathCoreServers+`/${core}-${version}.jar`, pathServers + `/${newServer.name}`);
-            fs.appendFile(pathServers + `/${newServer.name}/eula.txt`, "eula=true", err => {
+            fs.mkdirSync(pathServers + `/${newServer.name}`);
+            fs.copyFileSync(pathCoreServers+`/${newServer.core}-${newServer.version}.jar`, pathServers + `/${newServer.name}/server.jar`);
+            fs.appendFileSync(pathServers + `/${newServer.name}/eula.txt`, "eula=true", err => {
                 if(err) {
                     console.log(err);
                     return err
@@ -47,6 +48,8 @@ export class Server {
             res.status(404).json({ error: "error"});
         }
     }
-
-
 }
+
+
+const classServer = new Server();
+export default classServer;

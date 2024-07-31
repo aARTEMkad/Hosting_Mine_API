@@ -1,6 +1,9 @@
-import express from 'express'
+import express, { json } from 'express'
 import dotenv from 'dotenv'
 import mongoose from 'mongoose'
+// ----
+import ServerRouter from './router/ServerRouter.js';
+
 dotenv.config()
 
 const app = express();
@@ -19,5 +22,9 @@ mongoose.connect(process.env.URLMDB)
 
 
 app.listen(PORTAPI, () => {
+
+    app.use(express.json())
+
+    app.use(ServerRouter);
     console.log(`Start API on port = "${PORTAPI}"`);
 })
