@@ -48,6 +48,19 @@ class Server {
             res.status(404).json({ error: "error"});
         }
     }
+
+    async deleteServer(req, res) { // Delete from date base and delete folder 
+        try {
+            const currentServer = await ServerSchema.findByIdAndDelete(req.body.id);
+
+            console.log(pathServers + `/${currentServer.name}`)
+            fs.rmSync(pathServers + `/${currentServer.name}`, { recursive: true} ) // add check path
+            res.status(201).json(currentServer);
+        } catch(err) {
+            console.log(err);
+            res.status(404).json({ error: "error"});
+        }
+    }
 }
 
 

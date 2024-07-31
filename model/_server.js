@@ -3,6 +3,7 @@ import mongoose from "mongoose";
 const ServerSchema = new mongoose.Schema({
     name: {
         type: String,
+        unique: true,
         required: true,
     },
 

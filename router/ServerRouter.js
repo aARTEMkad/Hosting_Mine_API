@@ -9,4 +9,6 @@ Router.get('/api/server', Server.getListServers);
 
 Router.post('/api/server', Server.createServer);
 
+Router.delete('/api/server', Server.deleteServer);
+
 export default Router
