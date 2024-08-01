@@ -7,6 +7,8 @@ const Router = express.Router()
 
 Router.get('/api/server', Server.getListServers);
 
+Router.get('/api/server/:id', Server.getByIdServer);
+
 Router.post('/api/server', Server.createServer);
 
 Router.delete('/api/server/:id', Server.deleteServer);

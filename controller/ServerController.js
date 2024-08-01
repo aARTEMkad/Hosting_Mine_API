@@ -16,14 +16,25 @@ class Server {
         }
     }
 
+    async getByIdServer(req, res) {
+        try {
+            const Servers = await ServerSchema.findById(req.params.id);
+            res.status(200).json(Servers);
+        } catch(err) {
+            console.log(err);
+            res.status(404).json({ error: "error"});
+        }
+    }
+
     async createServer(req, res) { // Make create server in mongodb and add some server in path
         try {
             console.log(req.body);
             const newServer = new ServerSchema({
                 name: req.body.name,
                 version: req.body.version,
-                core: req.body.core,
+                core: req.body.core
             }) 
+            newServer.path = pathServers + `/${newServer.name}`;
             
             fs.mkdirSync(pathServers + `/${newServer.name}`);
             fs.copyFileSync(pathCoreServers+`/${newServer.core}-${newServer.version}.jar`, pathServers + `/${newServer.name}/server.jar`);
