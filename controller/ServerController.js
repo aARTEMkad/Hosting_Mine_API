@@ -51,9 +51,8 @@ class Server {
 
     async deleteServer(req, res) { // Delete from date base and delete folder 
         try {
-            const currentServer = await ServerSchema.findByIdAndDelete(req.body.id);
+            const currentServer = await ServerSchema.findByIdAndDelete(req.params.id);
 
-            console.log(pathServers + `/${currentServer.name}`)
             fs.rmSync(pathServers + `/${currentServer.name}`, { recursive: true} ) // add check path
             res.status(201).json(currentServer);
         } catch(err) {
