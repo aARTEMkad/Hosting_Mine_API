@@ -1,5 +1,9 @@
-import ServerSchema from "../model/_server.js";
 import fs from 'fs';
+import { exec } from 'child_process';
+
+// -- model
+import ServerSchema from "../model/_server.js";
+
 
 const pathServers = '/home/artem/ServersMinecraft'
 const pathCoreServers = '/home/artem/CoreMinecraft'
@@ -70,6 +74,38 @@ class Server {
             console.log(err);
             res.status(404).json({ error: "error"});
         }
+    }
+
+    async startServer(req, res) {
+        // const server = {
+        //     info: req.body.server,
+        //     memory: req.body.memory || 1024,
+        // }
+
+        // const serverPath = server.info.path
+        // const command = `java -Xmx${server.memory}M -Xms1024 -jar ${serverPath}/server.jar nogui`;
+
+        // exec(command, (error, stdout, stderr) => {
+        //     if(error) {
+        //         console.error(`Error executing Minecraft server: ${error}`);
+        //         return
+        //     } 
+
+        //     if(stderr) {
+        //         console.error(`Error output: ${stderr}`);
+        //         return; 
+        //     }
+        //     console.log(`Server output: ${stdout}`);
+        // })
+
+    }
+
+    async stopServer(req, res) {
+
+    }
+
+    async restartServer(req, res) {
+
     }
 }
 
