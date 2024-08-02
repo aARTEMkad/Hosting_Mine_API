@@ -12,6 +12,19 @@ const app = express();
 const PORTAPI = process.env.PORT || 3001
 
 
+// --- Test
+
+import { Server } from 'socket.io';
+import http from 'http';
+const server = http.createServer(app);
+const io = new Server(server);
+// ---
+
+
+
+
+
+
 
 mongoose.connect(process.env.URLMDB)
 .then(() => {
@@ -27,6 +40,9 @@ app.listen(PORTAPI, () => {
     app.use(express.json())
     app.use(cors())
 
-    app.use(ServerRouter);
+    app.use('/api', (req, res, next) => {
+        req.io = io;
+        next();
+    },ServerRouter);
     console.log(`Start API on port = "${PORTAPI}"`);
 })

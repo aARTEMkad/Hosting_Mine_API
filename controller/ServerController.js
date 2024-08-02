@@ -1,5 +1,5 @@
 import fs from 'fs';
-import { exec } from 'child_process';
+import { exec, spawn } from 'child_process';
 
 // -- model
 import ServerSchema from "../model/_server.js";
@@ -7,6 +7,7 @@ import ServerSchema from "../model/_server.js";
 
 const pathServers = '/home/artem/ServersMinecraft'
 const pathCoreServers = '/home/artem/CoreMinecraft'
+
 
 class Server {
 
@@ -76,28 +77,53 @@ class Server {
         }
     }
 
-    async startServer(req, res) {
-        // const server = {
-        //     info: req.body.server,
-        //     memory: req.body.memory || 1024,
-        // }
 
-        // const serverPath = server.info.path
-        // const command = `java -Xmx${server.memory}M -Xms1024 -jar ${serverPath}/server.jar nogui`;
 
-        // exec(command, (error, stdout, stderr) => {
-        //     if(error) {
-        //         console.error(`Error executing Minecraft server: ${error}`);
-        //         return
-        //     } 
 
-        //     if(stderr) {
-        //         console.error(`Error output: ${stderr}`);
-        //         return; 
-        //     }
-        //     console.log(`Server output: ${stdout}`);
-        // })
+    
 
+
+ 
+    // Test
+
+    async startServer(req, res, io) {
+        const server = {
+            info: req.body.server,
+            memory: req.body.memory || 1024,
+        }
+
+        const serverPath = server.info.path
+
+        if(fs.existsSync(serverPath+'/eula.txt')) {
+            console.log('Are file');
+        } else {
+            console.log('Aren\'t file')
+        }
+
+        console.log(process.getuid())
+
+        const mineServ = spawn('java', ['-Xmx' + server.memory + 'M', '-Xms1024M', '-jar', serverPath + '/server.jar', 'nogui'], { // 'nogui'
+            cwd: serverPath, // Specify work path
+            env: process.env // Move process
+        });
+        console.log(serverPath + '||' + server.memory);
+        mineServ.stdout.on('data', (data) => {
+            const message = `Server ${server.info.name}: ${data}`;
+            console.log(message);
+            io.emit(`console:${server.info._id}`, message);
+        })
+
+        mineServ.stderr.on('data', (data) => {
+            const message = `Server ${server.info.name} error: ${data}`;
+            io.emit(`console:${server.info._id}`, message);
+        });
+
+        mineServ.on('close', (code) => {
+            console.log(`Server ${server.info.name} stopped with code ${code}`);
+            // delete servers[serverInfo._id];
+        });
+
+        res.status(200).json({message:`Server ${server.info.name} started`});
     }
 
     async stopServer(req, res) {
@@ -107,6 +133,12 @@ class Server {
     async restartServer(req, res) {
 
     }
+
+    async sendCommand(req, res) {
+
+    }
+
+    // ----
 }
 
 

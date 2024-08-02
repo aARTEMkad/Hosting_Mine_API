@@ -17,6 +17,10 @@ const ServerSchema = new mongoose.Schema({
         required: true,
     },
 
+    status: {
+        type: Boolean,
+    },
+
     path: {
         type: String,
     }
