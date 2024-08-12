@@ -1,5 +1,5 @@
 import fs from 'fs';
-import { exec, spawn } from 'child_process';
+import { spawn } from 'child_process';
 
 // -- model
 import ServerSchema from "../model/_server.js";
@@ -8,10 +8,10 @@ import ServerSchema from "../model/_server.js";
 const pathServers = '/home/artem/ServersMinecraft'
 const pathCoreServers = '/home/artem/CoreMinecraft'
 
-
+let procesServ = [];
 class Server {
 
-    #procesServ = [];
+    //procesServ = [ 1 ];
 
     async getListServers(req, res) {
         try {
@@ -101,7 +101,7 @@ class Server {
             env: process.env // Move process
         });
 
-        this.#procesServ.push({ server, mineServ });
+        procesServ.push({ server, mineServ });
    
         mineServ.stdout.on('data', (data) => {
             const message = `Server ${server.info.name}: ${data}`;
@@ -115,27 +115,36 @@ class Server {
         });
 
         mineServ.on('close', (code) => {
-            const delELe = this.#procesServ.findIndex(item => item.server.info._id === server.info._id);
-            this.#procesServ.splice(delELe, 1); 
+            const delELe = procesServ.findIndex(item => item.server.info._id === server.info._id);
+            procesServ.splice(delELe, 1); 
             console.log(`Server ${server.info.name} stopped with code ${code}!`);
         });
-        console.log(this.#procesServ);
+        console.log(procesServ);
         
-        res.status(200).json({message:`Server ${server.info.name} started`});
+        res.status(200).json({message:`Server ${server.info.name} started, info ${procesServ}`});
     }
 
     async stopServer(req, res) {
-        const _server = {
-            info: req.body.server,
-       }  
-
-        this.#procesServ.find({ server: { info: _server }})
-        console.log(this.#procesServ);
+        try {
+            const server = req.body.server
+            const InServerProc = procesServ.findIndex(item => item.server.info._id === server._id);
+            if(InServerProc != -1) {
+                procesServ[InServerProc].mineServ.kill();
+                procesServ.splice(InServerProc, 1); 
+                console.log(procesServ)
+                res.status(200).json({ message: `Server ${server.name} stopped`});
+            } else {
+                res.status(404).json({ message: "don't found server"});
+            }
+        } catch(err){
+            console.log(err);
+            res.status(400).json({error: `${err}`});
+        }
     }
 
     async restartServer(req, res) {
 
-        console.log(this.#procesServ);
+        console.log(procesServ);
     }
 
     async sendCommand(req, res) {
