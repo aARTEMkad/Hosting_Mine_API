@@ -18,6 +18,8 @@ Router.delete('/server/:id', Server.deleteServer);
 Router.post('/server/start', (req, res) => {
     Server.startServer(req, res, req.io);
 })
+
+Router.post('/server/stop', Server.stopServer);
 // ---
 
 

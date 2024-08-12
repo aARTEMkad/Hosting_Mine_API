@@ -1,3 +1,4 @@
+import { ChildProcess } from "child_process";
 import mongoose from "mongoose";
 
 const ServerSchema = new mongoose.Schema({
@@ -15,10 +16,6 @@ const ServerSchema = new mongoose.Schema({
     core: {
         type: String,
         required: true,
-    },
-
-    status: {
-        type: Boolean,
     },
 
     path: {

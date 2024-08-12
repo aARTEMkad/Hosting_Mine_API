@@ -11,6 +11,8 @@ const pathCoreServers = '/home/artem/CoreMinecraft'
 
 class Server {
 
+    #procesServ = [];
+
     async getListServers(req, res) {
         try {
             const Servers = await ServerSchema.find();
@@ -90,23 +92,17 @@ class Server {
         const server = {
             info: req.body.server,
             memory: req.body.memory || 1024,
-        }
+        }  
 
         const serverPath = server.info.path
-
-        if(fs.existsSync(serverPath+'/eula.txt')) {
-            console.log('Are file');
-        } else {
-            console.log('Aren\'t file')
-        }
-
-        console.log(process.getuid())
 
         const mineServ = spawn('java', ['-Xmx' + server.memory + 'M', '-Xms1024M', '-jar', serverPath + '/server.jar', 'nogui'], { // 'nogui'
             cwd: serverPath, // Specify work path
             env: process.env // Move process
         });
-        console.log(serverPath + '||' + server.memory);
+
+        this.#procesServ.push({ server, mineServ });
+   
         mineServ.stdout.on('data', (data) => {
             const message = `Server ${server.info.name}: ${data}`;
             console.log(message);
@@ -119,19 +115,27 @@ class Server {
         });
 
         mineServ.on('close', (code) => {
-            console.log(`Server ${server.info.name} stopped with code ${code}`);
-            // delete servers[serverInfo._id];
+            const delELe = this.#procesServ.findIndex(item => item.server.info._id === server.info._id);
+            this.#procesServ.splice(delELe, 1); 
+            console.log(`Server ${server.info.name} stopped with code ${code}!`);
         });
-
+        console.log(this.#procesServ);
+        
         res.status(200).json({message:`Server ${server.info.name} started`});
     }
 
     async stopServer(req, res) {
+        const _server = {
+            info: req.body.server,
+       }  
 
+        this.#procesServ.find({ server: { info: _server }})
+        console.log(this.#procesServ);
     }
 
     async restartServer(req, res) {
 
+        console.log(this.#procesServ);
     }
 
     async sendCommand(req, res) {
@@ -143,4 +147,5 @@ class Server {
 
 
 const classServer = new Server();
+
 export default classServer;
