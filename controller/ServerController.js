@@ -22,7 +22,7 @@ class Server {
     async getListServers(req, res) {
         try {
             const Servers = await ServerSchema.find();
-            res.status(200).json(Servers);
+            res.status(200).json({Servers, procesServ});
         } catch(err) {
             console.log(err);
             res.status(404).json({ error: "error"});
@@ -147,7 +147,7 @@ class Server {
         }
     }
 
-    async restartServer(req, res) { // must be server in req
+    async restartServer(req, res) {
         try {
             const server = req.body.server
             const InServerProc = procesServ.findIndex(item => item.server.info._id === server._id);
@@ -167,7 +167,19 @@ class Server {
     }
 
     async sendCommand(req, res) {
+        try {
+            const server = req.body.server
+            const command = req.body.command;
+            const InServerProc = procesServ.findIndex(item => item.server.info._id === server._id);
+            const process = procesServ[InServerProc].mineServ;
 
+            console.log(`process: ${process}, command: ${command}`)
+            process.stdin.write(command + '\n');
+            res.status(200).send('sss');
+
+        } catch(err) {
+            res.status(400).json({error: `${err}`});
+        }
     }
 
     // ----
