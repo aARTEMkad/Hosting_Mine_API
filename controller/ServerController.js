@@ -11,7 +11,13 @@ const pathCoreServers = '/home/artem/CoreMinecraft'
 let procesServ = [];
 class Server {
 
-    //procesServ = [ 1 ];
+    constructor () {
+
+
+        this.startServer = this.startServer.bind(this);
+        this.stopServer = this.stopServer.bind(this);
+        this.restartServer = this.restartServer.bind(this);
+    }
 
     async getListServers(req, res) {
         try {
@@ -121,10 +127,9 @@ class Server {
         });
         console.log(procesServ);
         
-        res.status(200).json({message:`Server ${server.info.name} started, info ${procesServ}`});
     }
 
-    async stopServer(req, res) {
+    async stopServer(req, res, ) {
         try {
             const server = req.body.server
             const InServerProc = procesServ.findIndex(item => item.server.info._id === server._id);
@@ -142,9 +147,23 @@ class Server {
         }
     }
 
-    async restartServer(req, res) {
-
-        console.log(procesServ);
+    async restartServer(req, res) { // must be server in req
+        try {
+            const server = req.body.server
+            const InServerProc = procesServ.findIndex(item => item.server.info._id === server._id);
+            if(InServerProc != -1) {
+                procesServ[InServerProc].mineServ.kill();
+                procesServ.splice(InServerProc, 1); 
+                console.log(procesServ)
+            } else {
+                res.status(404).json({ message: "don't found server"});
+            }
+        } catch(err){
+            console.log(err);
+            res.status(400).json({error: `${err}`});
+        }
+        this.startServer(req, res, req.io);
+        res.status(200).json({ message: `Server ${req.body.server.name} restarted`});
     }
 
     async sendCommand(req, res) {
