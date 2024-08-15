@@ -3,7 +3,6 @@ import Server from '../controller/ServerController.js';
 
 
 const Router = express.Router()
-//const ServerMine = new Server();
 
 Router.get('/server', Server.getListServers);
 
@@ -12,8 +11,6 @@ Router.get('/server/:id', Server.getByIdServer);
 Router.post('/server', Server.createServer);
 
 Router.delete('/server/:id', Server.deleteServer);
-
-// Test
 
 Router.post('/server/start', (req, res) => {
     try {
@@ -30,7 +27,5 @@ Router.post('/server/stop', Server.stopServer);
 Router.post('/server/restart', Server.restartServer);
 
 Router.post('/server/send_command', Server.sendCommand);
-// ---
-
 
 export default Router

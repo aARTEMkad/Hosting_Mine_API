@@ -85,15 +85,6 @@ class Server {
         }
     }
 
-
-
-
-    
-
-
- 
-    // Test
-
     async startServer(req, res, io) {
         const server = {
             info: req.body.server,
@@ -124,18 +115,18 @@ class Server {
             const delELe = procesServ.findIndex(item => item.server.info._id === server.info._id);
             procesServ.splice(delELe, 1); 
             console.log(`Server ${server.info.name} stopped with code ${code}!`);
-        });
-        console.log(procesServ);
+        });     
         
+        console.log()
     }
 
     async stopServer(req, res, ) {
         try {
             const server = req.body.server
+            console.log(procesServ);
             const InServerProc = procesServ.findIndex(item => item.server.info._id === server._id);
             if(InServerProc != -1) {
-                procesServ[InServerProc].mineServ.kill();
-                procesServ.splice(InServerProc, 1); 
+                procesServ[InServerProc].mineServ.stdin.write('stop\n');
                 console.log(procesServ)
                 res.status(200).json({ message: `Server ${server.name} stopped`});
             } else {
@@ -151,9 +142,9 @@ class Server {
         try {
             const server = req.body.server
             const InServerProc = procesServ.findIndex(item => item.server.info._id === server._id);
+            console.log(InServerProc);
             if(InServerProc != -1) {
-                procesServ[InServerProc].mineServ.kill();
-                procesServ.splice(InServerProc, 1); 
+                procesServ[InServerProc].mineServ.stdin.write('stop\n');
                 console.log(procesServ)
             } else {
                 res.status(404).json({ message: "don't found server"});
@@ -171,18 +162,20 @@ class Server {
             const server = req.body.server
             const command = req.body.command;
             const InServerProc = procesServ.findIndex(item => item.server.info._id === server._id);
-            const process = procesServ[InServerProc].mineServ;
 
-            console.log(`process: ${process}, command: ${command}`)
-            process.stdin.write(command + '\n');
-            res.status(200).send('sss');
+            if(InServerProc != -1) {
+                const process = procesServ[InServerProc].mineServ;
+
+                console.log(`process: ${process}, command: ${command}`)
+                process.stdin.write(command + '\n');
+                res.status(200).json({message: `run command on server: ${command}`});
+            }
+            
 
         } catch(err) {
             res.status(400).json({error: `${err}`});
         }
     }
-
-    // ----
 }
 
 
