@@ -66,7 +66,7 @@ class Server {
             console.log(server);
 
             server.save().then(() => {
-                res.status(202).json({message: `Container create by id: ${container.id}, and save for data base`});
+                res.status(201).json({message: `Container create by id: ${container.id}, and save for data base`, Servers: server});
             }).catch(err => {
                 res.status(400).json({message: `Container created by id: ${container.id}, not save server in data base`});
             })
@@ -75,27 +75,49 @@ class Server {
         }
     }
 
+    // GET
+    async getListServers(req, res) {
+        try {
+           const Servers = await ServerSchema.find();
+             res.status(200).json(Servers);
+        } catch(err) {
+            console.log(err);
+            res.status(404).json({ error: "error"});
+        }
+    }
 
+    // GET
+    async getByIdServer(req, res) {
+        try {
+            const Servers = await ServerSchema.findById(req.params.id);
+            res.status(200).json(Servers);
+        } catch(err) {
+            console.log(err);
+            res.status(404).json({ error: "error"});
+        }
+    }
 
-    // async getListServers(req, res) {
-    //     try {
-    //         const Servers = await ServerSchema.find();
-    //         res.status(200).json({Servers, procesServ});
-    //     } catch(err) {
-    //         console.log(err);
-    //         res.status(404).json({ error: "error"});
-    //     }
-    // }
+    // DELETE
+    async deleteServer(req, res) {
+        try {
+            const Servers = await ServerSchema.findByIdAndDelete(req.params.id);
 
-    // async getByIdServer(req, res) {
-    //     try {
-    //         const Servers = await ServerSchema.findById(req.params.id);
-    //         res.status(200).json(Servers);
-    //     } catch(err) {
-    //         console.log(err);
-    //         res.status(404).json({ error: "error"});
-    //     }
-    // }
+            const container = await docker.getContainer(Servers.containerId);
+
+            container.remove()
+            .then(data => {
+                console.log(data);
+                res.status(200).json({message: `Server and container delete.`, Servers: Servers});
+            })
+            .catch(err => {
+                console.log(err);
+                res.status(520).json({message: `Server delete. container error: ${err}`});
+            })
+
+        } catch(err) {
+            res.status(404).json(err);
+        }
+    }
 
     // async createServer(req, res) { // Make create server in mongodb and add some server in path
     //     try {

@@ -4,13 +4,13 @@ import Server from '../controller/ServerController.js';
 
 const Router = express.Router()
 
-//Router.get('/server', Server.getListServers);
+Router.get('/server', Server.getListServers);
 
-//Router.get('/server/:id', Server.getByIdServer);
+Router.get('/server/:id', Server.getByIdServer);
 
 Router.post('/server', Server.createServer);
 
-//Router.delete('/server/:id', Server.deleteServer);
+Router.delete('/server/:id', Server.deleteServer);
 
 //Router.post('/server/start', (req, res) => {
 //     try {
