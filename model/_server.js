@@ -33,6 +33,11 @@ const ServerSchema = new mongoose.Schema({
         required: true,
     },
 
+    javaVersion: {
+        type: String,
+        required: true,
+    },
+
     containerId: {
         type: String,
         required: true,

@@ -12,17 +12,11 @@ Router.post('/server', Server.createServer);
 
 Router.delete('/server/:id', Server.deleteServer);
 
-//Router.post('/server/start', (req, res) => {
-//     try {
-//         Server.startServer(req, res, req.io);   
-//         res.status(200).json({message:`Server ${req.body.server.name} started`});
-//     } catch(err) {
-//         res.status(400).json({message:`Server ${req.body.server.name} don't start`});
-//     }
-    
-// })
+Router.post('/server/start', (req, res) => {
+        Server.startServer(req, res, req.io);   
+})
 
-// Router.post('/server/stop', Server.stopServer);
+Router.post('/server/stop', Server.stopServer);
 
 // Router.post('/server/restart', Server.restartServer);
 

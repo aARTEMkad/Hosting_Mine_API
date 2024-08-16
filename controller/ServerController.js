@@ -25,22 +25,25 @@ class Server {
     }
 
     // POST
-    async createServer(req, res) {
+    async createServer(req, res) { // More write function update java version and container, data base
         try {
-            const { name, memory, cpus, ports, core, version } = req.body;
+            const { name, memory, cpus, ports, core, version, javaVersion } = req.body;
 
             console.log('#1');
+            const imageTag = `itzg/minecraft-server:java${javaVersion}` // install jdk
             const container = await docker.createContainer({
-                Image: 'itzg/minecraft-server',
+                Image: imageTag,
                 name: name,
                 ExposedPorts: {
-                    [`${ports}/tcp`]: {}
+                   // [`${ports}/tcp`]: {}
+                    [`25565/tcp`]: {}
                 },
                 HostConfig: {
                     Memory: memory * 1024 * 1024, // set in byte
                     NanoCpus: cpus * 1e9,
                     PortBindings: {
-                        [`${ports}/tcp`]: [{ HostPort: ports}]
+                        //[`${ports}/tcp`]: [{ HostPort: ports}]
+                        [`25565/tcp`]: [{ HostPort: ports}]
                     },
                     CpusetCpus: cpus < 2 ? "0" : "0,1" // Пример использования конкретных ядер процессора
                 },
@@ -60,6 +63,7 @@ class Server {
                 ports: ports,
                 core: core,
                 version: version,
+                javaVersion: javaVersion,
                 containerId: container.id,
             });
 
@@ -78,7 +82,7 @@ class Server {
     // GET
     async getListServers(req, res) {
         try {
-           const Servers = await ServerSchema.find();
+           const Servers = await ServerSchema.find(req.body);
              res.status(200).json(Servers);
         } catch(err) {
             console.log(err);
@@ -119,86 +123,69 @@ class Server {
         }
     }
 
-    // async createServer(req, res) { // Make create server in mongodb and add some server in path
-    //     try {
-    //         console.log(req.body);
-    //         const newServer = new ServerSchema({
-    //             name: req.body.name,
-    //             version: req.body.version,
-    //             core: req.body.core
-    //         }) 
-    //         newServer.path = pathServers + `/${newServer.name}`;
+    // POST
+    async startServer(req, res, io) {
+        try {
+            const { containerId, name } = req.body;
+
+            const serverContainer = await docker.getContainer(containerId);
+
+            await serverContainer.start();
+
+            res.status(200).json({message: `Server started! ${name}`})
+
+            const logStream = await serverContainer.logs({
+                follow: true,
+                stdout: true,
+                stderr: true,
+            })
+
+            logStream.on('data', (chunk) => {
+                console.log(chunk.toString('utf8'));
+            })
+
+            logStream.on('end', () => {
+                console.log('Log steam ended');
+            })
+
+
+            // serverContainer.exec({
+            //     Cmd: ['java', '--version'],
+            //     AttachStdout: true,
+            //     AttachStderr: true,
+            // }, (err, exec) => {
+            //     if(err) return console.log(err);
+
+            //     exec.start((err, steam) => {
+            //         if(err) return console.log(err);
+            //         console.log('----------------------------')
+
+            //         steam.on('data', (data) => {
+            //             console.log(data.toString('utf8'));
+            //         })
+            //     })
+            // })
+
+        } catch(err) {
+            res.status(404).json(err);
+        }
+    }
+
+    async stopServer(req, res) {
+        try {
+            const { containerId } = req.body;
             
-    //         fs.mkdirSync(pathServers + `/${newServer.name}`);
-    //         fs.copyFileSync(pathCoreServers+`/${newServer.core}-${newServer.version}.jar`, pathServers + `/${newServer.name}/server.jar`);
-    //         fs.appendFileSync(pathServers + `/${newServer.name}/eula.txt`, "eula=true", err => {
-    //             if(err) {
-    //                 console.log(err);
-    //                 return err
-    //             }
-    //             console.log("Saved");
-    //         })
-            
-    //         newServer.save().then(() => {
-    //             res.status(201).json(newServer)
-    //         })
-    //         .catch((err) => {
-    //             console.log(err)
-    //             res.status(502).json({message: `Error: ${err}`})
-    //         })
+            const containerServ = docker.getContainer(containerId);
 
-    //     } catch(err) {
-    //         console.log(err);
-    //         res.status(404).json({ error: "error"});
-    //     }
-    // }
+            await containerServ.stop();
 
-    // async deleteServer(req, res) { // Delete from date base and delete folder 
-    //     try {
-    //         const currentServer = await ServerSchema.findByIdAndDelete(req.params.id);
+            res.status(200).json({message: `Server stopped! ${containerId}`})
 
-    //         fs.rmSync(pathServers + `/${currentServer.name}`, { recursive: true} ) // add check path
-    //         res.status(201).json(currentServer);
-    //     } catch(err) {
-    //         console.log(err);
-    //         res.status(404).json({ error: "error"});
-    //     }
-    // }
+        } catch (err) {
+            res.status(404).json(err);
+        }
+    }
 
-    // async startServer(req, res, io) {
-    //     const server = {
-    //         info: req.body.server,
-    //         memory: req.body.memory || 1024,
-    //     }  
-
-    //     const serverPath = server.info.path
-
-    //     const mineServ = spawn('java', ['-Xmx' + server.memory + 'M', '-Xms1024M', '-jar', serverPath + '/server.jar', 'nogui'], { // 'nogui'
-    //         cwd: serverPath, // Specify work path
-    //         env: process.env // Move process
-    //     });
-
-    //     procesServ.push({ server, mineServ });
-   
-    //     mineServ.stdout.on('data', (data) => {
-    //         const message = `Server ${server.info.name}: ${data}`;
-    //         console.log(message);
-    //         io.emit(`console:${server.info._id}`, message);
-    //     })
-
-    //     mineServ.stderr.on('data', (data) => {
-    //         const message = `Server ${server.info.name} error: ${data}`;
-    //         io.emit(`console:${server.info._id}`, message);
-    //     });
-
-    //     mineServ.on('close', (code) => {
-    //         const delELe = procesServ.findIndex(item => item.server.info._id === server.info._id);
-    //         procesServ.splice(delELe, 1); 
-    //         console.log(`Server ${server.info.name} stopped with code ${code}!`);
-    //     });     
-        
-    //     console.log()
-    // }
 
     // async stopServer(req, res, ) {
     //     try {
