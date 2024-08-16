@@ -1,5 +1,5 @@
-import { ChildProcess } from "child_process";
 import mongoose from "mongoose";
+
 
 const ServerSchema = new mongoose.Schema({
     name: {
@@ -8,7 +8,17 @@ const ServerSchema = new mongoose.Schema({
         required: true,
     },
 
-    version: {
+    memory: {
+        type: Number,
+        required: true,
+    },
+
+    cpus: {
+        type: Number,
+        required: true,
+    },
+
+    ports: {
         type: String,
         required: true,
     },
@@ -18,8 +28,14 @@ const ServerSchema = new mongoose.Schema({
         required: true,
     },
 
-    path: {
+    version: {
         type: String,
+        required: true,
+    },
+
+    containerId: {
+        type: String,
+        required: true,
     }
 })
 
