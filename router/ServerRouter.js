@@ -20,6 +20,6 @@ Router.post('/server/stop', Server.stopServer);
 
 // Router.post('/server/restart', Server.restartServer);
 
-// Router.post('/server/send_command', Server.sendCommand);
+Router.post('/server/send_command', Server.sendCommand);
 
 export default Router

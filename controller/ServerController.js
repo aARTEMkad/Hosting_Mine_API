@@ -6,6 +6,7 @@ import Docker from 'dockerode'
 
 
 import ServerSchema from "../model/_server.js";
+import Dockerode from 'dockerode';
 
 
 //const pathServers = '/home/artem/ServersMinecraft'
@@ -30,7 +31,7 @@ class Server {
             const { name, memory, cpus, ports, core, version, javaVersion } = req.body;
 
             console.log('#1');
-            const imageTag = `itzg/minecraft-server:java${javaVersion}` // install jdk
+            const imageTag = `itzg/minecraft-server:${javaVersion == 16 ? 'java16-openj9' : `2024.7.2-java${javaVersion}-jdk`}`// 
             const container = await docker.createContainer({
                 Image: imageTag,
                 name: name,
@@ -45,7 +46,7 @@ class Server {
                         //[`${ports}/tcp`]: [{ HostPort: ports}]
                         [`25565/tcp`]: [{ HostPort: ports}]
                     },
-                    CpusetCpus: cpus < 2 ? "0" : "0,1" // Пример использования конкретных ядер процессора
+                    CpusetCpus: cpus < 2 ? "0" : "0,1" // example using current cores
                 },
                 Env: [
                     'EULA=TRUE',
@@ -186,24 +187,42 @@ class Server {
         }
     }
 
+    async sendCommand(req, res) {
+        try {
+            const { containerId, command } = req.body;
+            const container = docker.getContainer(containerId);
 
-    // async stopServer(req, res, ) {
-    //     try {
-    //         const server = req.body.server
-    //         console.log(procesServ);
-    //         const InServerProc = procesServ.findIndex(item => item.server.info._id === server._id);
-    //         if(InServerProc != -1) {
-    //             procesServ[InServerProc].mineServ.stdin.write('stop\n');
-    //             console.log(procesServ)
-    //             res.status(200).json({ message: `Server ${server.name} stopped`});
-    //         } else {
-    //             res.status(404).json({ message: "don't found server"});
-    //         }
-    //     } catch(err){
-    //         console.log(err);
-    //         res.status(400).json({error: `${err}`});
-    //     }
-    // }
+            // --- Test path
+            const containerData = await container.inspect();
+            const mounts = containerData.Mounts;
+
+            mounts.forEach(mount => {
+                console.log(`Source: ${mount.Source}\n Destination: ${mount.Destination}\n  Type: ${mount.Type}\n----\n`);
+            })
+            // ----
+            
+            
+            const commands = command.split(' ');
+            console.log(commands);
+            const exec = await container.exec({
+                Cmd: commands,
+                AttachStdout: true,
+                AttachStderr: true,
+            })
+            console.log(exec);
+            console.log('#2')
+            const { output } = await exec.start();
+            output.on('data', (data) => console.log('Output:', data.toString()));
+            output.on('end', () => console.log('Command execution finished'));
+            output.on('error', (err) => console.error('Error Output:', err.toString()));
+            console.log('#3');
+            res.status(200).json({message: `Send command sucsefully: ${command}`})
+        } catch(err) {
+            res.status(400).json({ message: err});
+        }
+    }
+
+
 
     // async restartServer(req, res) {
     //     try {
