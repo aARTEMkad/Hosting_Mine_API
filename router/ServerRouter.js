@@ -5,9 +5,11 @@ import Server from '../controller/ServerController.js';
 const Router = express.Router()
 
 
-Router.get('/server/getLogs', (req, res) => {
-        Server.getLogs(req, res, req.io);
+Router.get('/server/logView', (req, res) => {
+        Server.LogView(req, res, req.io);
 })
+
+Router.get('/server/stats', Server.statsServer);
 
 Router.get('/server', Server.getListServers);
 
@@ -19,11 +21,7 @@ Router.post('/server', Server.createServer);
 
 Router.delete('/server/:id', Server.deleteServer);
 
-Router.post('/server/start', (req, res) => {
-        Server.startServer(req, res, req.io);   
-})
-
-
+Router.post('/server/start', Server.startServer)
 
 Router.post('/server/stop', Server.stopServer);
 

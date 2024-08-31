@@ -13,7 +13,8 @@ const app = express();
 
 const PORTAPI = process.env.PORT || 3001
 const server = http.createServer(app);
-const io = new Server(server);
+const io = new Server(server, {
+});
 
 
 
@@ -36,7 +37,9 @@ app.use('/api', (req, res, next) => {
     next();
 },ServerRouter);
 
-
+server.listen(PORTAPI, () => {
+    console.log("Start server")
+})
 /*
 io.on('connection', (socket) => {
     console.log('A user connected');
@@ -48,9 +51,7 @@ io.on('connection', (socket) => {
 
 */
 
-server.listen(PORTAPI, () => {
-    console.log("Start server")
-})
+
 // app.listen(PORTAPI, () => {
 
     

@@ -7,6 +7,7 @@ import Docker from 'dockerode'
 
 import ServerSchema from "../model/_server.js";
 import Dockerode from 'dockerode';
+import { Stream } from 'stream';
 
 
 //const pathServers = '/home/artem/ServersMinecraft'
@@ -125,7 +126,7 @@ class Server {
     }
 
     // POST
-    async startServer(req, res, io) {
+    async startServer(req, res) {
         try {
             const { containerId, name } = req.body;
 
@@ -134,35 +135,17 @@ class Server {
             await serverContainer.start();
 
             res.status(200).json({message: `Server started! ${name}`})
-            // serverContainer.exec({
-            //     Cmd: ['java', '--version'],
-            //     AttachStdout: true,
-            //     AttachStderr: true,
-            // }, (err, exec) => {
-            //     if(err) return console.log(err);
-
-            //     exec.start((err, steam) => {
-            //         if(err) return console.log(err);
-            //         console.log('----------------------------')
-
-            //         steam.on('data', (data) => {
-            //             console.log(data.toString('utf8'));
-            //         })
-            //     })
-            // })
-
         } catch(err) {
             res.status(404).json(err);
         }
     }
 
-    async getLogs(req, res, io) {
+    // GET
+    async LogView(req, res, io) {
         const { containerId, name } = req.body;
 
         console.log(containerId)
         const serverContainer = await docker.getContainer(containerId);
-
-        //io.join(name);
 
         const logStream = await serverContainer.logs({
             follow: true,
@@ -172,14 +155,14 @@ class Server {
         })
 
         logStream.on('data', (chunk) => {
-            //io.to(name).emit(chunk.toString('utf8'));
+            io.to(name).emit("log", chunk.toString('utf8'));
             console.log(chunk.toString('utf8'));
         })
 
         logStream.on('end', () => {
             
             console.log('Log steam ended');
-            //io.except(name).emit('Log stream ended');
+            io.to(name).emit('log-end', 'Log stream ended');
         })
         
 
@@ -201,7 +184,55 @@ class Server {
         }
     }
 
-    async sendCommand(req, res) {
+
+    // Test
+
+    async statsServer(req, res) {
+        try {
+            const { containerId } = req.body;
+            const container = docker.getContainer(containerId);
+
+            console.log('#1')
+            const streamStats = await container.stats({stream: true});
+            
+            streamStats.on('data', (stats) => {
+
+
+                const statsJSON = JSON.parse(stats.toString('utf8')); 
+                console.log(statsJSON);
+                console.log('2');
+                //console.log(statsJSON.cpu_stats.cpu_usage.total_usage); // Add function convert byte in MB and nanosecond in Seconds
+                console.log('----------------------------------------CPU')
+                const Cpudelta = statsJSON.cpu_stats.cpu_usage.total_usage - statsJSON.precpu_stats.cpu_usage.total_usage;
+                const systemDelta = statsJSON.cpu_stats.system_cpu_usage - statsJSON.precpu_stats.system_cpu_usage 
+                const onlineCpus = statsJSON.cpu_stats.online_cpus || 1;
+
+                const procent = (Cpudelta / systemDelta) * onlineCpus * 100 
+
+                console.log(procent + '%');
+                console.log('----------------------------------------MEMORY')
+                console.log(statsJSON.memory_stats.usage / 1024 / 1024 + "MB");
+                console.log(statsJSON.memory_stats.limit / 1024 / 1024 + "MB");
+                console.log('----------------------------------------NETWORKS')
+                console.log((statsJSON.networks.eth0.rx_bytes / 1024 / 1024) + "MB") // Received
+                console.log((statsJSON.networks.eth0.tx_bytes / 1024 / 1024) + "MB") // Transmitted
+            })
+
+            streamStats.on('end', () => {
+                console.log('eeee stop');
+            })
+            
+
+
+            console.log('#2'); //( stream=False)['cpu_stats']  , (stream=False)['precpu_stats'])
+
+            res.status(200).message({ message: "huj"})
+        } catch(err) {
+            res.status(400).json({ messagee: err});
+        }
+    }
+
+    async sendCommand(req, res) { // don't work
         try {
             const { containerId, command } = req.body;
             const container = docker.getContainer(containerId);
@@ -255,26 +286,6 @@ class Server {
     //     }
     //     this.startServer(req, res, req.io);
     //     res.status(200).json({ message: `Server ${req.body.server.name} restarted`});
-    // }
-
-    // async sendCommand(req, res) {
-    //     try {
-    //         const server = req.body.server
-    //         const command = req.body.command;
-    //         const InServerProc = procesServ.findIndex(item => item.server.info._id === server._id);
-
-    //         if(InServerProc != -1) {
-    //             const process = procesServ[InServerProc].mineServ;
-
-    //             console.log(`process: ${process}, command: ${command}`)
-    //             process.stdin.write(command + '\n');
-    //             res.status(200).json({message: `run command on server: ${command}`});
-    //         }
-            
-
-    //     } catch(err) {
-    //         res.status(400).json({error: `${err}`});
-    //     }
     // }
 }
 
