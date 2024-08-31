@@ -134,22 +134,6 @@ class Server {
             await serverContainer.start();
 
             res.status(200).json({message: `Server started! ${name}`})
-
-            const logStream = await serverContainer.logs({
-                follow: true,
-                stdout: true,
-                stderr: true,
-            })
-
-            logStream.on('data', (chunk) => {
-                console.log(chunk.toString('utf8'));
-            })
-
-            logStream.on('end', () => {
-                console.log('Log steam ended');
-            })
-
-
             // serverContainer.exec({
             //     Cmd: ['java', '--version'],
             //     AttachStdout: true,
@@ -170,6 +154,36 @@ class Server {
         } catch(err) {
             res.status(404).json(err);
         }
+    }
+
+    async getLogs(req, res, io) {
+        const { containerId, name } = req.body;
+
+        console.log(containerId)
+        const serverContainer = await docker.getContainer(containerId);
+
+        //io.join(name);
+
+        const logStream = await serverContainer.logs({
+            follow: true,
+            stdout: true,
+            stderr: true,
+            since: 0, // can not required
+        })
+
+        logStream.on('data', (chunk) => {
+            //io.to(name).emit(chunk.toString('utf8'));
+            console.log(chunk.toString('utf8'));
+        })
+
+        logStream.on('end', () => {
+            
+            console.log('Log steam ended');
+            //io.except(name).emit('Log stream ended');
+        })
+        
+
+        res.status(200).json({message: "Get logs"});
     }
 
     async stopServer(req, res) {
