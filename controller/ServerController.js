@@ -141,32 +141,37 @@ class Server {
     }
 
     // GET
-    async LogView(req, res, io) {
-        const { containerId, name } = req.body;
+    async LogView(req, res, io) { // Duplicate
+        try {
+            const { containerId, name } = req.body;
 
-        console.log(containerId)
-        const serverContainer = await docker.getContainer(containerId);
-
-        const logStream = await serverContainer.logs({
-            follow: true,
-            stdout: true,
-            stderr: true,
-            since: 0, // can not required
-        })
-
-        logStream.on('data', (chunk) => {
-            io.to(name).emit("log", chunk.toString('utf8'));
-            console.log(chunk.toString('utf8'));
-        })
-
-        logStream.on('end', () => {
+            console.log(containerId)
+            const serverContainer = await docker.getContainer(containerId);
+    
+            const logStream = await serverContainer.logs({
+                follow: true,
+                stdout: true,
+                stderr: true,
+                since: 0, // can not required
+            })
+    
+            logStream.on('data', (chunk) => {
+                io.to(name).emit("log", chunk.toString('utf8'));
+                console.log(chunk.toString('utf8'));
+            })
+    
+            logStream.on('end', () => {
+                
+                console.log('Log steam ended');
+                io.to(name).emit('log-end', 'Log stream ended');
+            })
             
-            console.log('Log steam ended');
-            io.to(name).emit('log-end', 'Log stream ended');
-        })
+    
+            res.status(200).json({message: "Get logs"});
+        } catch(err) {
+            res.status(400).json({ message: err });
+        }
         
-
-        res.status(200).json({message: "Get logs"});
     }
 
     async stopServer(req, res) {
@@ -185,9 +190,7 @@ class Server {
     }
 
 
-    // Test
-
-    async statsServer(req, res, io) { 
+     async statsServer(req, res, io) {  // Undefined eth0
         try {
             const { containerId, cpus, name } = req.body;
             const container = docker.getContainer(containerId);
@@ -233,7 +236,7 @@ class Server {
         }
     }
 
-    async sendCommand(req, res) { // don't work
+    async sendCommand(req, res) {
         try {
             const { containerId, command } = req.body;
             const container = docker.getContainer(containerId);
@@ -248,22 +251,27 @@ class Server {
             // ----
             
             
-            const commands = command.split(' ');
-            console.log(commands);
             const exec = await container.exec({
-                Cmd: commands,
+                AttachStdin: true,
                 AttachStdout: true,
                 AttachStderr: true,
+                Tty: false,
+                Cmd: ['/bin/sh', '-c', `rcon-cli ${command}`]
             })
-            console.log(exec);
-            console.log('#2')
-            const { output } = await exec.start();
-            output.on('data', (data) => console.log('Output:', data.toString()));
-            output.on('end', () => console.log('Command execution finished'));
-            output.on('error', (err) => console.error('Error Output:', err.toString()));
-            console.log('#3');
-            res.status(200).json({message: `Send command sucsefully: ${command}`})
+
+            const stream = await exec.start({ hijack: true, stdin: true });
+
+            // stream.on('data', (chunk) => {
+            //     console.log(chunk.toString('utf8'))
+            // })
+
+            stream.on('end', () => {
+                console.log('Command execution completed')
+            })
+
+            res.status(200).json({ message: `Successfully command: "${command}" `})
         } catch(err) {
+            console.log(err);
             res.status(400).json({ message: err});
         }
     }
