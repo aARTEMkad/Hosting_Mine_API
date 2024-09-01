@@ -1,7 +1,7 @@
 import fs from 'fs';
 //import { spawn } from 'child_process';
 import Docker from 'dockerode'
-
+import serverService from '../service/ServerService.js';
 // -- model
 
 
@@ -47,7 +47,7 @@ class Server {
                         //[`${ports}/tcp`]: [{ HostPort: ports}]
                         [`25565/tcp`]: [{ HostPort: ports}]
                     },
-                    CpusetCpus: cpus < 2 ? "0" : "0,1" // example using current cores
+                   // CpusetCpus: cpus < 2 ? "0" : "0,1" // example using current cores
                 },
                 Env: [
                     'EULA=TRUE',
@@ -187,48 +187,46 @@ class Server {
 
     // Test
 
-    async statsServer(req, res) {
+    async statsServer(req, res) { // Виправити нагрузку процесора. Впіхнути все в функції. Достати інфу о кількості ядер
         try {
-            const { containerId } = req.body;
+            const { containerId, cpus, name } = req.body;
             const container = docker.getContainer(containerId);
+            const data = await container.inspect();
 
-            console.log('#1')
             const streamStats = await container.stats({stream: true});
             
             streamStats.on('data', (stats) => {
 
 
                 const statsJSON = JSON.parse(stats.toString('utf8')); 
-                console.log(statsJSON);
-                console.log('2');
-                //console.log(statsJSON.cpu_stats.cpu_usage.total_usage); // Add function convert byte in MB and nanosecond in Seconds
                 console.log('----------------------------------------CPU')
-                const Cpudelta = statsJSON.cpu_stats.cpu_usage.total_usage - statsJSON.precpu_stats.cpu_usage.total_usage;
-                const systemDelta = statsJSON.cpu_stats.system_cpu_usage - statsJSON.precpu_stats.system_cpu_usage 
-                const onlineCpus = statsJSON.cpu_stats.online_cpus || 1;
+                // const cpudelta = statsJSON.cpu_stats.cpu_usage.total_usage - statsJSON.precpu_stats.cpu_usage.total_usage;
 
-                const procent = (Cpudelta / systemDelta) * onlineCpus * 100 
+                // const systemDelta = statsJSON.cpu_stats.system_cpu_usage - statsJSON.precpu_stats.system_cpu_usage
 
-                console.log(procent + '%');
+
+                
+
+
+                // const procent = (cpudelta / systemDelta) * cpus * 100;
+                const www = serverService.calculateCPUUsage(statsJSON.cpu_stats, statsJSON.precpu_stats, cpus)
+                console.log(www + '%');
                 console.log('----------------------------------------MEMORY')
                 console.log(statsJSON.memory_stats.usage / 1024 / 1024 + "MB");
                 console.log(statsJSON.memory_stats.limit / 1024 / 1024 + "MB");
                 console.log('----------------------------------------NETWORKS')
-                console.log((statsJSON.networks.eth0.rx_bytes / 1024 / 1024) + "MB") // Received
-                console.log((statsJSON.networks.eth0.tx_bytes / 1024 / 1024) + "MB") // Transmitted
+                console.log(((statsJSON.networks.eth0.rx_bytes || 1 ) / 1024 / 1024) + "MB") // Received
+                console.log(((statsJSON.networks.eth0.tx_bytes || 1 )/ 1024 / 1024) + "MB") // Transmitted
             })
 
             streamStats.on('end', () => {
                 console.log('eeee stop');
             })
-            
+            console.log('#2');
 
-
-            console.log('#2'); //( stream=False)['cpu_stats']  , (stream=False)['precpu_stats'])
-
-            res.status(200).message({ message: "huj"})
+            res.send('OK')
         } catch(err) {
-            res.status(400).json({ messagee: err});
+            res.status(400).json({ messagee: `${err} ee`});
         }
     }
 
