@@ -6,10 +6,12 @@ const Router = express.Router()
 
 
 Router.get('/server/logView', (req, res) => {
-        Server.LogView(req, res, req.io);
+    Server.LogView(req, res, req.io);
 })
 
-Router.get('/server/stats', Server.statsServer);
+Router.get('/server/stats', (req, res) => {
+    Server.statsServer(req, res, req.io);
+});
 
 Router.get('/server', Server.getListServers);
 

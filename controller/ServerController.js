@@ -187,11 +187,11 @@ class Server {
 
     // Test
 
-    async statsServer(req, res) { // Виправити нагрузку процесора. Впіхнути все в функції. Достати інфу о кількості ядер
+    async statsServer(req, res, io) { 
         try {
             const { containerId, cpus, name } = req.body;
             const container = docker.getContainer(containerId);
-            const data = await container.inspect();
+      //      const data = await container.inspect();
 
             const streamStats = await container.stats({stream: true});
             
@@ -200,23 +200,26 @@ class Server {
 
                 const statsJSON = JSON.parse(stats.toString('utf8')); 
                 console.log('----------------------------------------CPU')
-                // const cpudelta = statsJSON.cpu_stats.cpu_usage.total_usage - statsJSON.precpu_stats.cpu_usage.total_usage;
+             
+                const _cpuUsage = serverService.calculateCPUUsage(statsJSON.cpu_stats, statsJSON.precpu_stats, cpus)
 
-                // const systemDelta = statsJSON.cpu_stats.system_cpu_usage - statsJSON.precpu_stats.system_cpu_usage
+                io.to(name).emit("cpuUsage", _cpuUsage);
 
-
-                
-
-
-                // const procent = (cpudelta / systemDelta) * cpus * 100;
-                const www = serverService.calculateCPUUsage(statsJSON.cpu_stats, statsJSON.precpu_stats, cpus)
-                console.log(www + '%');
+                console.log(_cpuUsage + '%');
                 console.log('----------------------------------------MEMORY')
-                console.log(statsJSON.memory_stats.usage / 1024 / 1024 + "MB");
-                console.log(statsJSON.memory_stats.limit / 1024 / 1024 + "MB");
+                io.to(name).emit("ramUsage", serverService.convertByteInMByte(statsJSON.memory_stats.usage));
+                io.to(name).emit("ramLimit", serverService.convertByteInMByte(statsJSON.memory_stats.limit));
+                
+                console.log(serverService.convertByteInMByte(statsJSON.memory_stats.usage) + "MB");
+                console.log(serverService.convertByteInMByte(statsJSON.memory_stats.limit) + "MB");
+             
                 console.log('----------------------------------------NETWORKS')
-                console.log(((statsJSON.networks.eth0.rx_bytes || 1 ) / 1024 / 1024) + "MB") // Received
-                console.log(((statsJSON.networks.eth0.tx_bytes || 1 )/ 1024 / 1024) + "MB") // Transmitted
+                io.to(name).emit("receivedInternet", serverService.convertByteInMByte(statsJSON.networks.eth0.rx_bytes));
+                io.to(name).emit("transmittedInternet", serverService.convertByteInMByte(statsJSON.networks.eth0.tx_bytes));
+                
+                
+                console.log(serverService.convertByteInMByte(statsJSON.networks.eth0.rx_bytes) + "MB") // Received
+                console.log(serverService.convertByteInMByte(statsJSON.networks.eth0.tx_bytes) + "MB") // Transmitted
             })
 
             streamStats.on('end', () => {
