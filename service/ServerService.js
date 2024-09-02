@@ -1,4 +1,5 @@
-
+import fs from "fs";
+import tar from "tar-stream"
 
 class serverService {
     
@@ -14,7 +15,6 @@ class serverService {
     convertByteInMByte(Byte) {
         return (Byte / 1024/ 1024).toFixed(2);
     }
-
 }
 
 

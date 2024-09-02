@@ -1,21 +1,13 @@
 import fs from 'fs';
-//import { spawn } from 'child_process';
 import Docker from 'dockerode'
 import serverService from '../service/ServerService.js';
 // -- model
 
 
 import ServerSchema from "../model/_server.js";
-import Dockerode from 'dockerode';
-import { Stream } from 'stream';
 
-
-//const pathServers = '/home/artem/ServersMinecraft'
-//const pathCoreServers = '/home/artem/CoreMinecraft'
 const docker = new Docker();
 
-
-//let procesServ = [];
 class Server {
 
     constructor () {
@@ -31,20 +23,22 @@ class Server {
         try {
             const { name, memory, cpus, ports, core, version, javaVersion } = req.body;
 
+
             console.log('#1');
+            
+            
             const imageTag = `itzg/minecraft-server:${javaVersion == 16 ? 'java16-openj9' : `2024.7.2-java${javaVersion}-jdk`}`// 
             const container = await docker.createContainer({
                 Image: imageTag,
                 name: name,
                 ExposedPorts: {
-                   // [`${ports}/tcp`]: {}
                     [`25565/tcp`]: {}
                 },
                 HostConfig: {
+                    Binds: [ `/home/user/minecraft/server/${name}:/data:rw` ],
                     Memory: memory * 1024 * 1024, // set in byte
                     NanoCpus: cpus * 1e9,
                     PortBindings: {
-                        //[`${ports}/tcp`]: [{ HostPort: ports}]
                         [`25565/tcp`]: [{ HostPort: ports}]
                     },
                    // CpusetCpus: cpus < 2 ? "0" : "0,1" // example using current cores
@@ -56,6 +50,9 @@ class Server {
                     `VERSION=${version}`, // '1.16.5', '1.17.5'.
                 ]
             })
+
+          //  container.defaultOptions.start.Binds = ["/home/user/minecraft/server:/minecraft:rw"];
+
             console.log('#2');
 
             const server = new ServerSchema({
@@ -77,6 +74,7 @@ class Server {
                 res.status(400).json({message: `Container created by id: ${container.id}, not save server in data base`});
             })
         } catch(err) {
+            console.log(err);
             res.status(400).json({error: err}); // 409 status. conflict name
         }
     }
@@ -106,6 +104,14 @@ class Server {
     // DELETE
     async deleteServer(req, res) {
         try {
+
+            /*
+                //Error
+             statusCode: 409,
+                json: {
+                    message: 'cannot remove container "/qwe123": container is running: stop the container before removing or force remove'
+                 }
+            */
             const Servers = await ServerSchema.findByIdAndDelete(req.params.id);
 
             const container = await docker.getContainer(Servers.containerId);
@@ -230,11 +236,22 @@ class Server {
             })
             console.log('#2');
 
-            res.send('OK')
+            res.send('OK') // --
         } catch(err) {
             res.status(400).json({ messagee: `${err} ee`});
         }
     }
+
+    async getServerProperties(res, req) {
+        try {
+
+
+            res.send('OK') // --
+        } catch(err) {
+            res.status(400).json({ message: err});
+        }
+    }
+
 
     async sendCommand(req, res) {
         try {
