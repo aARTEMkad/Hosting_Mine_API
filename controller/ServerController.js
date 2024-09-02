@@ -1,4 +1,4 @@
-import fs from 'fs';
+import fs from 'node:fs';
 import Docker from 'dockerode'
 import serverService from '../service/ServerService.js';
 // -- model
@@ -7,6 +7,9 @@ import serverService from '../service/ServerService.js';
 import ServerSchema from "../model/_server.js";
 
 const docker = new Docker();
+
+
+const pathBind = "/home/user/minecraft/server/";
 
 class Server {
 
@@ -35,7 +38,7 @@ class Server {
                     [`25565/tcp`]: {}
                 },
                 HostConfig: {
-                    Binds: [ `/home/user/minecraft/server/${name}:/data:rw` ],
+                    Binds: [ `${pathBind}${name}:/data:rw` ],
                     Memory: memory * 1024 * 1024, // set in byte
                     NanoCpus: cpus * 1e9,
                     PortBindings: {
@@ -195,7 +198,7 @@ class Server {
         }
     }
 
-
+    // GET
      async statsServer(req, res, io) {  // Undefined eth0
         try {
             const { containerId, cpus, name } = req.body;
@@ -242,30 +245,46 @@ class Server {
         }
     }
 
-    async getServerProperties(res, req) {
+
+    // File data edit
+
+    async getServerProperties(req, res) {
         try {
+            const { name } = req.body;
 
-
-            res.send('OK') // --
+            const path = pathBind + name + "/server.properties";
+            console.log(name, pathBind, path);
+            const contentProperties = await fs.readFile(path.toString(), { encoding: 'utf-8'}, (err, data) => {
+                if(err) {
+                    console.log(err);
+                    res.status(404).json({ message: "don't search file server.properties"})
+                } else {
+                    res.status(200).json({ data });
+                }
+            });
+            console.log(contentProperties);
         } catch(err) {
+            console.log(err);
             res.status(400).json({ message: err});
         }
     }
 
+
+    // ----
 
     async sendCommand(req, res) {
         try {
             const { containerId, command } = req.body;
             const container = docker.getContainer(containerId);
 
-            // --- Test path
-            const containerData = await container.inspect();
-            const mounts = containerData.Mounts;
+            // // --- Test path
+            // const containerData = await container.inspect();
+            // const mounts = containerData.Mounts;
 
-            mounts.forEach(mount => {
-                console.log(`Source: ${mount.Source}\n Destination: ${mount.Destination}\n  Type: ${mount.Type}\n----\n`);
-            })
-            // ----
+            // mounts.forEach(mount => {
+            //     console.log(`Source: ${mount.Source}\n Destination: ${mount.Destination}\n  Type: ${mount.Type}\n----\n`);
+            // })
+            // // ----
             
             
             const exec = await container.exec({

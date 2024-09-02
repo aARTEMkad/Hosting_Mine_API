@@ -13,11 +13,18 @@ Router.get('/server/stats', (req, res) => {
     Server.statsServer(req, res, req.io);
 });
 
+// ----
+
+Router.get('/server/server_properties', Server.getServerProperties)
+
+// ----
+
 Router.get('/server', Server.getListServers);
 
 Router.get('/server/:id', Server.getByIdServer);
 
 Router.post('/server', Server.createServer);
+
 
 
 
