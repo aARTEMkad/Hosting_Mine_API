@@ -259,6 +259,9 @@ class Server {
                     console.log(err);
                     res.status(404).json({ message: "don't search file server.properties"})
                 } else {
+                    
+                    console.log(data);
+
                     res.status(200).json({ data });
                 }
             });
