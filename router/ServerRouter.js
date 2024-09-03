@@ -16,6 +16,7 @@ Router.get('/server/stats', (req, res) => {
 // ----
 
 Router.get('/server/server_properties', Server.getServerProperties)
+Router.put('/server/server_properties', Server.updateServerProperties)
 
 // ----
 
