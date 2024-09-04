@@ -424,12 +424,22 @@ class Server {
 
     addPlugins(req, res) {
         try {
+            const { name } = req.body;
+            const { path, originalname } = req.file;
             console.log(req.file);
+            console.log(path);
+            const pathMove = pathBind + name + "/plugins";
+            console.log(fs.path)
+            if(fs.existsSync(pathMove)){
+                fs.copyFileSync(path, pathMove + '/' + originalname);
+                fs.rmSync(path);
+                res.status(200).json({ message: "ok"});
+            } else {
+                res.status(404).json({ message: "don't found file"});
+            }
 
-            res.status(200).json({ message: "ok"});
         } catch(err) {
-            //res.status(400).json({message: err});
-            
+            res.status(400).json({message: err});
         }
     } 
 
