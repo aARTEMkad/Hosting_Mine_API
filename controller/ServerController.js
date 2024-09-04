@@ -405,6 +405,42 @@ class Server {
     //     this.startServer(req, res, req.io);
     //     res.status(200).json({ message: `Server ${req.body.server.name} restarted`});
     // }
+
+
+    /*
+    Router.get('/server/plugins', Server.getPlugins);
+    Router.post('/server/plugins', Server.updatePlugins);
+    Router.delete('/server/plugins', Server.deletePlugins);
+*/
+
+    // GET
+    getPlugins(req, res) {
+        try {
+
+        } catch(err) {
+            res.status(400).json({message: err});
+        }
+    }
+
+    addPlugins(req, res) {
+        try {
+            console.log(req.file);
+
+            res.status(200).json({ message: "ok"});
+        } catch(err) {
+            //res.status(400).json({message: err});
+            
+        }
+    } 
+
+    deletePlugins(req, res) {
+        try {
+
+        } catch(err) {
+            res.status(400).json({message: err});
+        }
+    }
+
 }
 
 
