@@ -416,20 +416,27 @@ class Server {
     // GET
     getPlugins(req, res) {
         try {
-
+            const { name } = req.body;
+            const checkPath = pathBind + name + '/plugins';
+            
+            if(fs.existsSync(checkPath)){
+                const result = fs.readdirSync(checkPath);
+                res.status(200).json({ plugins: result });
+            } else {
+                res.status(404).json({ message: "don't found path"});
+            }
         } catch(err) {
             res.status(400).json({message: err});
         }
     }
 
+    // POST
     addPlugins(req, res) {
         try {
             const { name } = req.body;
             const { path, originalname } = req.file;
-            console.log(req.file);
-            console.log(path);
             const pathMove = pathBind + name + "/plugins";
-            console.log(fs.path)
+
             if(fs.existsSync(pathMove)){
                 fs.copyFileSync(path, pathMove + '/' + originalname);
                 fs.rmSync(path);
@@ -443,9 +450,18 @@ class Server {
         }
     } 
 
+    // DELETE
     deletePlugins(req, res) {
         try {
+            const { name, pluginName } = req.body;
+            const pathDel = pathBind + name + "/plugins/" + pluginName;
 
+            if(fs.existsSync(pathDel)) {
+                fs.rmSync(pathDel);
+                res.status(200).json({ message: `Delete plugins in server: ${name}, plugin: ${pluginName}`})
+            } else {
+                res.status(404).json({ message: "don't found file"});
+            }
         } catch(err) {
             res.status(400).json({message: err});
         }
