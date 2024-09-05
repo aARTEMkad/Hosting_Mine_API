@@ -13,7 +13,8 @@ const app = express();
 
 const PORTAPI = process.env.PORT || 3001
 const server = http.createServer(app);
-const io = new Server(server);
+const io = new Server(server, {
+});
 
 
 
@@ -28,15 +29,31 @@ mongoose.connect(process.env.URLMDB)
     console.log(`Error = ${err}`);
 });
 
-
-app.listen(PORTAPI, () => {
-
-    app.use(express.json())
+app.use(express.json())
     app.use(cors())
 
-    app.use('/api', (req, res, next) => {
-        req.io = io;
-        next();
-    },ServerRouter);
-    console.log(`Start API on port = "${PORTAPI}"`);
+app.use('/api', (req, res, next) => {
+    req.io = io;
+    next();
+},ServerRouter);
+
+server.listen(PORTAPI, () => {
+    console.log("Start server")
 })
+/*
+io.on('connection', (socket) => {
+    console.log('A user connected');
+
+    socket.on('disconnect', () => {`
+        console.log('User disconnected');
+    });
+});
+
+*/
+
+
+// app.listen(PORTAPI, () => {
+
+    
+//     console.log(`Start API on port = "${PORTAPI}"`);
+// })

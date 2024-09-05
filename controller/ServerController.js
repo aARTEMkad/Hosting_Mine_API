@@ -1,34 +1,95 @@
-import fs from 'fs';
-import { spawn } from 'child_process';
-
+import fs from 'node:fs';
+import Docker from 'dockerode'
+import serverService from '../service/ServerService.js';
 // -- model
+
+
 import ServerSchema from "../model/_server.js";
 
+const docker = new Docker();
 
-const pathServers = '/home/artem/ServersMinecraft'
-const pathCoreServers = '/home/artem/CoreMinecraft'
 
-let procesServ = [];
+const pathBind = "/home/user/minecraft/server/";
+
 class Server {
 
     constructor () {
-
-
-        this.startServer = this.startServer.bind(this);
-        this.stopServer = this.stopServer.bind(this);
-        this.restartServer = this.restartServer.bind(this);
+        // this.startServer = this.startServer.bind(this);
     }
 
+    // POST
+    async createServer(req, res) { // More write function update java version and container, data base
+        try {
+            const { name, memory, cpus, ports, core, version, javaVersion } = req.body;
+
+
+            console.log('#1');
+            
+            
+            const imageTag = `itzg/minecraft-server:${javaVersion == 16 ? 'java16-openj9' : `2024.7.2-java${javaVersion}-jdk`}`// 
+            const container = await docker.createContainer({
+                Image: imageTag,
+                name: name,
+                ExposedPorts: {
+                    [`25565/tcp`]: {}
+                },
+                HostConfig: {
+                    Binds: [ `${pathBind}${name}:/data:rw` ],
+                    Memory: memory * 1024 * 1024, // set in byte
+                    NanoCpus: cpus * 1e9,
+                    PortBindings: {
+                        [`25565/tcp`]: [{ HostPort: ports}]
+                    },
+                   // CpusetCpus: cpus < 2 ? "0" : "0,1" // example using current cores
+                },
+                Env: [
+                    'EULA=TRUE',
+                    `MEMORY=${memory}m`,
+                    `TYPE=${core}`, // 'VANILLA', 'FORGE', 'SPIGOT', 'FABRIC', 'SPIGOT', 'PAPER', 'BUKKIT';
+                    `VERSION=${version}`, // '1.16.5', '1.17.5'.
+                ]
+            })
+
+          //  container.defaultOptions.start.Binds = ["/home/user/minecraft/server:/minecraft:rw"];
+
+            console.log('#2');
+
+            const server = new ServerSchema({
+                name: name,
+                memory: memory,
+                cpus: cpus,
+                ports: ports,
+                core: core,
+                version: version,
+                javaVersion: javaVersion,
+                containerId: container.id,
+            });
+
+            console.log(server);
+
+            server.save().then(() => {
+                res.status(201).json({message: `Container create by id: ${container.id}, and save for data base`, Servers: server});
+            }).catch(err => {
+                res.status(400).json({message: `Container created by id: ${container.id}, not save server in data base`});
+            })
+        } catch(err) {
+            console.log(err);
+            res.status(400).json({error: err}); // 409 status. conflict name
+        }
+    }
+
+    // GET
     async getListServers(req, res) {
         try {
-            const Servers = await ServerSchema.find();
-            res.status(200).json({Servers, procesServ});
+           const Servers = await ServerSchema.find(req.body);
+             res.status(200).json(Servers);
         } catch(err) {
             console.log(err);
             res.status(404).json({ error: "error"});
         }
     }
 
+    // GET
     async getByIdServer(req, res) {
         try {
             const Servers = await ServerSchema.findById(req.params.id);
@@ -39,143 +100,354 @@ class Server {
         }
     }
 
-    async createServer(req, res) { // Make create server in mongodb and add some server in path
+    // DELETE
+    async deleteServer(req, res) {
         try {
-            console.log(req.body);
-            const newServer = new ServerSchema({
-                name: req.body.name,
-                version: req.body.version,
-                core: req.body.core
-            }) 
-            newServer.path = pathServers + `/${newServer.name}`;
-            
-            fs.mkdirSync(pathServers + `/${newServer.name}`);
-            fs.copyFileSync(pathCoreServers+`/${newServer.core}-${newServer.version}.jar`, pathServers + `/${newServer.name}/server.jar`);
-            fs.appendFileSync(pathServers + `/${newServer.name}/eula.txt`, "eula=true", err => {
-                if(err) {
-                    console.log(err);
-                    return err
-                }
-                console.log("Saved");
+
+            /*
+                //Error
+             statusCode: 409,
+                json: {
+                    message: 'cannot remove container "/qwe123": container is running: stop the container before removing or force remove'
+                 }
+            */
+            const Servers = await ServerSchema.findByIdAndDelete(req.params.id);
+
+            const container = await docker.getContainer(Servers.containerId);
+
+            container.remove()
+            .then(data => {
+                console.log(data);
+                res.status(200).json({message: `Server and container delete.`, Servers: Servers});
             })
-            
-            newServer.save().then(() => {
-                res.status(201).json(newServer)
-            })
-            .catch((err) => {
-                console.log(err)
-                res.status(502).json({message: `Error: ${err}`})
+            .catch(err => {
+                console.log(err);
+                res.status(520).json({message: `Server delete. container error: ${err}`});
             })
 
         } catch(err) {
-            console.log(err);
-            res.status(404).json({ error: "error"});
+            res.status(404).json(err);
         }
     }
 
-    async deleteServer(req, res) { // Delete from date base and delete folder 
+    // POST
+    async startServer(req, res) {
         try {
-            const currentServer = await ServerSchema.findByIdAndDelete(req.params.id);
+            const { containerId, name } = req.body;
 
-            fs.rmSync(pathServers + `/${currentServer.name}`, { recursive: true} ) // add check path
-            res.status(201).json(currentServer);
+            const serverContainer = await docker.getContainer(containerId);
+
+            await serverContainer.start();
+
+            res.status(200).json({message: `Server started! ${name}`})
         } catch(err) {
-            console.log(err);
-            res.status(404).json({ error: "error"});
+            res.status(404).json(err);
         }
     }
 
-    async startServer(req, res, io) {
-        const server = {
-            info: req.body.server,
-            memory: req.body.memory || 1024,
-        }  
-
-        const serverPath = server.info.path
-
-        const mineServ = spawn('java', ['-Xmx' + server.memory + 'M', '-Xms1024M', '-jar', serverPath + '/server.jar', 'nogui'], { // 'nogui'
-            cwd: serverPath, // Specify work path
-            env: process.env // Move process
-        });
-
-        procesServ.push({ server, mineServ });
-   
-        mineServ.stdout.on('data', (data) => {
-            const message = `Server ${server.info.name}: ${data}`;
-            console.log(message);
-            io.emit(`console:${server.info._id}`, message);
-        })
-
-        mineServ.stderr.on('data', (data) => {
-            const message = `Server ${server.info.name} error: ${data}`;
-            io.emit(`console:${server.info._id}`, message);
-        });
-
-        mineServ.on('close', (code) => {
-            const delELe = procesServ.findIndex(item => item.server.info._id === server.info._id);
-            procesServ.splice(delELe, 1); 
-            console.log(`Server ${server.info.name} stopped with code ${code}!`);
-        });     
-        
-        console.log()
-    }
-
-    async stopServer(req, res, ) {
-        try {
-            const server = req.body.server
-            console.log(procesServ);
-            const InServerProc = procesServ.findIndex(item => item.server.info._id === server._id);
-            if(InServerProc != -1) {
-                procesServ[InServerProc].mineServ.stdin.write('stop\n');
-                console.log(procesServ)
-                res.status(200).json({ message: `Server ${server.name} stopped`});
-            } else {
-                res.status(404).json({ message: "don't found server"});
-            }
-        } catch(err){
-            console.log(err);
-            res.status(400).json({error: `${err}`});
-        }
-    }
-
+    // POST 
     async restartServer(req, res) {
         try {
-            const server = req.body.server
-            const InServerProc = procesServ.findIndex(item => item.server.info._id === server._id);
-            console.log(InServerProc);
-            if(InServerProc != -1) {
-                procesServ[InServerProc].mineServ.stdin.write('stop\n');
-                console.log(procesServ)
-            } else {
-                res.status(404).json({ message: "don't found server"});
-            }
-        } catch(err){
-            console.log(err);
-            res.status(400).json({error: `${err}`});
+            const { containerId, name } = req.body;
+            const serverContainer = await docker.getContainer(containerId);
+            await serverContainer.stop();
+            await serverContainer.start();
+            res.status(200).json({ message: `Server restarted by name: ${name}`});
+        } catch(err) {
+            res.status(404).json({ message: err});
         }
-        this.startServer(req, res, req.io);
-        res.status(200).json({ message: `Server ${req.body.server.name} restarted`});
     }
+
+    // GET
+    async LogView(req, res, io) { // Duplicate
+        try {
+            const { containerId, name } = req.body;
+
+            console.log(containerId)
+            const serverContainer = await docker.getContainer(containerId);
+    
+            const logStream = await serverContainer.logs({
+                follow: true,
+                stdout: true,
+                stderr: true,
+                since: 0,
+            })
+    
+            logStream.on('data', (chunk) => {
+                io.to(name).emit("log", chunk.toString('utf8'));
+                console.log(chunk.toString('utf8'));
+            })
+    
+            logStream.on('end', () => {
+                
+                console.log('Log steam ended');
+                io.to(name).emit('log-end', 'Log stream ended');
+            })
+            
+    
+            res.status(200).json({message: "Get logs"});
+        } catch(err) {
+            res.status(400).json({ message: err });
+        }
+        
+    }
+
+    async stopServer(req, res) {
+        try {
+            const { containerId } = req.body;
+            
+            const containerServ = docker.getContainer(containerId);
+
+            await containerServ.stop();
+
+            res.status(200).json({message: `Server stopped! ${containerId}`})
+
+        } catch (err) {
+            res.status(404).json(err);
+        }
+    }
+
+    // GET
+     async statsServer(req, res, io) {  // Undefined eth0
+        try {
+            const { containerId, cpus, name } = req.body;
+            const container = docker.getContainer(containerId);
+      //      const data = await container.inspect();
+
+            const streamStats = await container.stats({stream: true});
+            
+            streamStats.on('data', (stats) => {
+
+
+                const statsJSON = JSON.parse(stats.toString('utf8')); 
+                console.log('----------------------------------------CPU')
+             
+                const _cpuUsage = serverService.calculateCPUUsage(statsJSON.cpu_stats, statsJSON.precpu_stats, cpus)
+
+                io.to(name).emit("cpuUsage", _cpuUsage);
+
+                console.log(_cpuUsage + '%');
+                console.log('----------------------------------------MEMORY')
+                io.to(name).emit("ramUsage", serverService.convertByteInMByte(statsJSON.memory_stats.usage));
+                io.to(name).emit("ramLimit", serverService.convertByteInMByte(statsJSON.memory_stats.limit));
+                
+                console.log(serverService.convertByteInMByte(statsJSON.memory_stats.usage) + "MB");
+                console.log(serverService.convertByteInMByte(statsJSON.memory_stats.limit) + "MB");
+             
+                console.log('----------------------------------------NETWORKS')
+                io.to(name).emit("receivedInternet", serverService.convertByteInMByte(statsJSON.networks.eth0.rx_bytes));
+                io.to(name).emit("transmittedInternet", serverService.convertByteInMByte(statsJSON.networks.eth0.tx_bytes));
+                
+                
+                console.log(serverService.convertByteInMByte(statsJSON.networks.eth0.rx_bytes) + "MB") // Received
+                console.log(serverService.convertByteInMByte(statsJSON.networks.eth0.tx_bytes) + "MB") // Transmitted
+            })
+
+            streamStats.on('end', () => {
+                console.log('eeee stop');
+            })
+            console.log('#2');
+
+            res.send('OK') // --
+        } catch(err) {
+            res.status(400).json({ messagee: `${err} ee`});
+        }
+    }
+
+
+    // File data edit
+
+    async getServerProperties(req, res) {
+        try {
+            const { name } = req.body;
+
+            const path = pathBind + name + "/server.properties";
+            console.log(name, pathBind, path);
+            const contentProperties = await fs.readFile(path.toString(), { encoding: 'utf-8'}, (err, data) => {
+                if(err) {
+                    console.log(err);
+                    res.status(404).json({ message: "don't search file server.properties"})
+                } else {
+                    
+                    console.log(data);
+
+                    res.status(200).json({ data });
+                }
+            });
+            console.log(contentProperties);
+        } catch(err) {
+            console.log(err);
+            res.status(400).json({ message: err});
+        }
+    }
+
+
+    async updateServerProperties(req, res) { // don't edit data when run server;
+        try {
+            const { name, server_properties } = req.body;
+            console.log(server_properties);
+            const path = pathBind + name + "/server.properties";
+            console.log(name, pathBind, path);
+            const contentProperties = await fs.readFile(path.toString(), { encoding: 'utf-8'}, (err, data) => {
+                if(err) {
+                    console.log(err);
+                    res.status(404).json({ message: "don't search file server.properties"})
+                } else {
+                    let properties = {};
+                    //console.log(data);
+
+                    let tmp = data.split('\n');
+                    tmp.splice(0, 2);
+                    tmp.splice(tmp.length - 1, 1);
+                    console.log(tmp);
+
+                    for(let i = 0; i < tmp.length; i++) {
+                        let [key, value] = tmp[i].split('=');
+                        properties[key.trim()] = value;
+                    }
+
+                    for(const keyOrig in properties) {
+                        if(properties.hasOwnProperty(keyOrig)) {
+                            // ---
+                            for(const key in server_properties) {
+                                if(server_properties.hasOwnProperty(key)){
+                                    if(key == keyOrig) {
+                                        console.log('------------------')
+                                        console.log(`${keyOrig}: ${properties[keyOrig]}`);
+                                        console.log(`${key}: ${server_properties[key]}`);
+                                        properties[keyOrig] = server_properties[key];
+                                        console.log('------------------')
+                                        break;
+                                    }
+                                }
+                            }
+                            // ---
+                        }
+                    }
+
+                    console.log(properties)
+                    let updatedData;
+
+                    for(const key in properties) {
+                        if(properties.hasOwnProperty(key)) {
+                            updatedData += key.toString() + '=' + properties[key].toString() + '\n';
+                        }
+                    }
+                    console.log(updatedData)
+                    fs.writeFile(path.toString(), updatedData, 'utf8', (err) => {
+                        if (err) {
+                            console.error('Error write information:', err);
+                            return;
+                        }
+                        console.log('File successfully update!');
+                    });
+
+                    res.status(200).json({ properties });
+                }
+            });
+            console.log(contentProperties);
+        } catch(err) {
+            console.log(err);
+            res.status(400).json({ message: err});
+        }
+    }
+
+    // ----
 
     async sendCommand(req, res) {
         try {
-            const server = req.body.server
-            const command = req.body.command;
-            const InServerProc = procesServ.findIndex(item => item.server.info._id === server._id);
+            const { containerId, command } = req.body;
+            const container = docker.getContainer(containerId);
 
-            if(InServerProc != -1) {
-                const process = procesServ[InServerProc].mineServ;
+            // // --- Test path
+            // const containerData = await container.inspect();
+            // const mounts = containerData.Mounts;
 
-                console.log(`process: ${process}, command: ${command}`)
-                process.stdin.write(command + '\n');
-                res.status(200).json({message: `run command on server: ${command}`});
-            }
+            // mounts.forEach(mount => {
+            //     console.log(`Source: ${mount.Source}\n Destination: ${mount.Destination}\n  Type: ${mount.Type}\n----\n`);
+            // })
+            // // ----
             
+            
+            const exec = await container.exec({
+                AttachStdin: true,
+                AttachStdout: true,
+                AttachStderr: true,
+                Tty: false,
+                Cmd: ['/bin/sh', '-c', `rcon-cli ${command}`]
+            })
 
+            const stream = await exec.start({ hijack: true, stdin: true });
+
+            // stream.on('data', (chunk) => {
+            //     console.log(chunk.toString('utf8'))
+            // })
+
+            stream.on('end', () => {
+                console.log('Command execution completed')
+            })
+
+            res.status(200).json({ message: `Successfully command: "${command}" `})
         } catch(err) {
-            res.status(400).json({error: `${err}`});
+            console.log(err);
+            res.status(400).json({ message: err});
         }
     }
+
+    // GET
+    getPlugins(req, res) {
+        try {
+            const { name } = req.body;
+            const checkPath = pathBind + name + '/plugins';
+
+            if(fs.existsSync(checkPath)){
+                const result = fs.readdirSync(checkPath);
+                res.status(200).json({ plugins: result });
+            } else {
+                res.status(404).json({ message: "don't found path"});
+            }
+        } catch(err) {
+            res.status(400).json({message: err});
+        }
+    }
+
+    // POST
+    addPlugins(req, res) {
+        try {
+            const { name } = req.body;
+            const { path, originalname } = req.file;
+            const pathMove = pathBind + name + "/plugins";
+
+            if(fs.existsSync(pathMove)){
+                fs.copyFileSync(path, pathMove + '/' + originalname);
+                fs.rmSync(path);
+                res.status(200).json({ message: "ok"});
+            } else {
+                res.status(404).json({ message: "don't found file"});
+            }
+
+        } catch(err) {
+            res.status(400).json({message: err});
+        }
+    } 
+
+    // DELETE
+    deletePlugins(req, res) {
+        try {
+            const { name, pluginName } = req.body;
+            const pathDel = pathBind + name + "/plugins/" + pluginName;
+
+            if(fs.existsSync(pathDel)) {
+                fs.rmSync(pathDel);
+                res.status(200).json({ message: `Delete plugins in server: ${name}, plugin: ${pluginName}`})
+            } else {
+                res.status(404).json({ message: "don't found file"});
+            }
+        } catch(err) {
+            res.status(400).json({message: err});
+        }
+    }
+
 }
 
 
