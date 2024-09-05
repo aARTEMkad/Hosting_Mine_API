@@ -1,15 +1,12 @@
 import express from "express";
 import multer from "multer";
-import path from "path"
 
 import Server from '../controller/ServerController.js';
-
 
 const Router = express.Router()
 const storage = multer.diskStorage({
     destination: (req, file, cb) => {
         const dest = 'plugins/';
-        console.log('Destation: ', dest);
         cb(null, dest);
     },
     filename: (req, file, cb) => {
@@ -36,6 +33,8 @@ const upload = multer({
 });
 
 
+// ---- Stats server
+
 Router.get('/server/logView', (req, res) => {
     Server.LogView(req, res, req.io);
 })
@@ -54,7 +53,8 @@ Router.post('/server/server_properties', Server.updateServerProperties)
 Router.get('/server/plugins', Server.getPlugins);
 Router.post('/server/plugins', upload.single('file'), Server.addPlugins);
 Router.delete('/server/plugins', Server.deletePlugins);
-// ----
+
+// ---- server
 
 Router.get('/server', Server.getListServers);
 
@@ -62,18 +62,17 @@ Router.get('/server/:id', Server.getByIdServer);
 
 Router.post('/server', Server.createServer);
 
-
-
-
 Router.delete('/server/:id', Server.deleteServer);
 
 Router.post('/server/start', Server.startServer)
 
 Router.post('/server/stop', Server.stopServer);
 
-// Router.post('/server/restart', Server.restartServer);
+Router.post('/server/restart', Server.restartServer);
 
 Router.post('/server/send_command', Server.sendCommand);
+
+// ----
 
 export default Router
 

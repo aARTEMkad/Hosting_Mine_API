@@ -14,11 +14,7 @@ const pathBind = "/home/user/minecraft/server/";
 class Server {
 
     constructor () {
-
-
         // this.startServer = this.startServer.bind(this);
-        // this.stopServer = this.stopServer.bind(this);
-        // this.restartServer = this.restartServer.bind(this);
     }
 
     // POST
@@ -149,6 +145,19 @@ class Server {
         }
     }
 
+    // POST 
+    async restartServer(req, res) {
+        try {
+            const { containerId, name } = req.body;
+            const serverContainer = await docker.getContainer(containerId);
+            await serverContainer.stop();
+            await serverContainer.start();
+            res.status(200).json({ message: `Server restarted by name: ${name}`});
+        } catch(err) {
+            res.status(404).json({ message: err});
+        }
+    }
+
     // GET
     async LogView(req, res, io) { // Duplicate
         try {
@@ -161,7 +170,7 @@ class Server {
                 follow: true,
                 stdout: true,
                 stderr: true,
-                since: 0, // can not required
+                since: 0,
             })
     
             logStream.on('data', (chunk) => {
@@ -385,40 +394,12 @@ class Server {
         }
     }
 
-
-
-    // async restartServer(req, res) {
-    //     try {
-    //         const server = req.body.server
-    //         const InServerProc = procesServ.findIndex(item => item.server.info._id === server._id);
-    //         console.log(InServerProc);
-    //         if(InServerProc != -1) {
-    //             procesServ[InServerProc].mineServ.stdin.write('stop\n');
-    //             console.log(procesServ)
-    //         } else {
-    //             res.status(404).json({ message: "don't found server"});
-    //         }
-    //     } catch(err){
-    //         console.log(err);
-    //         res.status(400).json({error: `${err}`});
-    //     }
-    //     this.startServer(req, res, req.io);
-    //     res.status(200).json({ message: `Server ${req.body.server.name} restarted`});
-    // }
-
-
-    /*
-    Router.get('/server/plugins', Server.getPlugins);
-    Router.post('/server/plugins', Server.updatePlugins);
-    Router.delete('/server/plugins', Server.deletePlugins);
-*/
-
     // GET
     getPlugins(req, res) {
         try {
             const { name } = req.body;
             const checkPath = pathBind + name + '/plugins';
-            
+
             if(fs.existsSync(checkPath)){
                 const result = fs.readdirSync(checkPath);
                 res.status(200).json({ plugins: result });
