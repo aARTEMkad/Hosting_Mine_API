@@ -259,7 +259,7 @@ class Server {
 
     async getServerProperties(req, res) {
         try {
-            const { name } = req.body;
+            const { name } = req.query;
 
             const path = pathBind + name + "/server.properties";
             console.log(name, pathBind, path);
@@ -269,9 +269,22 @@ class Server {
                     res.status(404).json({ message: "don't search file server.properties"})
                 } else {
                     
+                    let properties = {};
+
+                    let tmp = data.split('\n');
+                    tmp.splice(0, 2);
+                    tmp.splice(tmp.length - 1, 1);
+                    console.log(tmp);
+
+                    for(let i = 0; i < tmp.length; i++) {
+                        let [key, value] = tmp[i].split('=');
+                        properties[key.trim()] = value;
+                    }
+
+
                     console.log(data);
 
-                    res.status(200).json({ data });
+                    res.status(200).json({ properties });
                 }
             });
             console.log(contentProperties);
