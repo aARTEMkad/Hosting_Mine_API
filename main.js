@@ -14,9 +14,22 @@ const app = express();
 const PORTAPI = process.env.PORT || 3001
 const server = http.createServer(app);
 const io = new Server(server, {
+    cors: {
+        origin: "http://localhost:3000", // Заміни на адресу твого фронтенду
+        methods: ["GET", "POST"]
+    }
 });
 
+io.on('connection', (socket) => {
+    socket.on('join', roomName => {
+        console.log(`connect to ${roomName}`)
+        socket.join(roomName);
+    })
 
+    socket.on('disconnect', () => {
+        console.log('User disconnected');
+    });
+})
 
 
 
@@ -30,7 +43,7 @@ mongoose.connect(process.env.URLMDB)
 });
 
 app.use(express.json())
-    app.use(cors())
+app.use(cors())
 
 app.use('/api', (req, res, next) => {
     req.io = io;

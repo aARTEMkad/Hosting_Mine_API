@@ -161,7 +161,9 @@ class Server {
     // GET
     async LogView(req, res, io) { // Duplicate
         try {
-            const { containerId, name } = req.body;
+            const { containerId, name } = req.query;
+            //console.log(req);
+            //console.log(req.query)
 
             console.log(containerId)
             const serverContainer = await docker.getContainer(containerId);
@@ -262,7 +264,7 @@ class Server {
             const { name } = req.query;
 
             const path = pathBind + name + "/server.properties";
-            console.log(name, pathBind, path);
+            //console.log(name, pathBind, path);
             const contentProperties = await fs.readFile(path.toString(), { encoding: 'utf-8'}, (err, data) => {
                 if(err) {
                     console.log(err);
@@ -282,7 +284,7 @@ class Server {
                     }
 
 
-                    console.log(data);
+                    console.log(properties);
 
                     res.status(200).json({ properties });
                 }
