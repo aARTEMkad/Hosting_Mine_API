@@ -8,7 +8,6 @@ import ServerSchema from "../model/_server.js";
 
 const docker = new Docker();
 
-
 const pathBind = "/home/user/minecraft/server/";
 
 class Server {
@@ -129,6 +128,8 @@ class Server {
             res.status(404).json(err);
         }
     }
+    
+
 
     // POST
     async startServer(req, res) {
@@ -136,7 +137,6 @@ class Server {
             const { containerId, name } = req.body;
 
             const serverContainer = await docker.getContainer(containerId);
-
             await serverContainer.start();
 
             res.status(200).json({message: `Server started! ${name}`})
@@ -158,6 +158,26 @@ class Server {
         }
     }
 
+    async getStatusServer(req, res) {
+        try {
+            const { containerId } = req.body;
+            const serverContainer = await docker.getContainer(containerId);
+
+            serverContainer.inspect((err, data) => {
+                if(err) {
+                    res.status(404).json({ message: `error get information o container ${err}`});
+                } else {
+                    if(data.State.Running) {
+                        res.status(200).json({ isRunning: true})
+                    } else res.status(200).json({ isRunning: false})
+                }
+            })
+        } catch(err) {
+            res.status(404).json({ message: err});
+        }
+    }
+
+    
     // GET
     async LogView(req, res, io) { // Duplicate
         try {
@@ -172,12 +192,12 @@ class Server {
                 follow: true,
                 stdout: true,
                 stderr: true,
-                since: 0,
+                since: 333,
             })
-    
+            console.log('-----')
             logStream.on('data', (chunk) => {
                 io.to(name).emit("log", chunk.toString('utf8'));
-                console.log(chunk.toString('utf8'));
+                //console.log(chunk.toString('utf8'));
             })
     
             logStream.on('end', () => {

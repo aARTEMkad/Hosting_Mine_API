@@ -43,6 +43,8 @@ Router.get('/server/stats', (req, res) => {
     Server.statsServer(req, res, req.io);
 });
 
+Router.get('/server/status', Server.getStatusServer)
+
 // ---- server.properties
 
 Router.get('/server/server_properties', Server.getServerProperties)

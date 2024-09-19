@@ -15,15 +15,19 @@ const PORTAPI = process.env.PORT || 3001
 const server = http.createServer(app);
 const io = new Server(server, {
     cors: {
-        origin: "http://localhost:3000", // Заміни на адресу твого фронтенду
+        origin: "http://localhost:3000",
         methods: ["GET", "POST"]
     }
 });
 
 io.on('connection', (socket) => {
     socket.on('join', roomName => {
-        console.log(`connect to ${roomName}`)
-        socket.join(roomName);
+        if (!socket.rooms.has(roomName)) {
+            console.log(`connect to ${roomName}`)
+            socket.join(roomName);
+        } else {
+            console.log('it is a room');
+        }
     })
 
     socket.on('disconnect', () => {
