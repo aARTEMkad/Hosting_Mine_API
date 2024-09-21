@@ -23,7 +23,7 @@ const io = new Server(server, {
 io.on('connection', (socket) => {
     socket.on('join', roomName => {
         if (!socket.rooms.has(roomName)) {
-            console.log(`connect to ${roomName}`)
+            console.log(`connect to ${roomName}, ${socket.id}`)
             socket.join(roomName);
         } else {
             console.log('it is a room');
@@ -31,7 +31,7 @@ io.on('connection', (socket) => {
     })
 
     socket.on('disconnect', () => {
-        console.log('User disconnected');
+        console.log(`User disconnected ${socket.id}`);
     });
 })
 

@@ -130,14 +130,29 @@ class Server {
     }
     
 
-
+    asd = [];
     // POST
-    async startServer(req, res) {
+    async startServer(req, res, io) {
         try {
             const { containerId, name } = req.body;
 
             const serverContainer = await docker.getContainer(containerId);
             await serverContainer.start();
+
+            const logStream = await serverContainer.logs({
+                follow: true,
+                stdout: true,
+                stderr: true,
+            })
+            
+            logStream.on('data', (chunk) => {
+                let logs = chunk.toString('utf8');
+                if(logs.indexOf("[Server thread") !== -1) {
+                    logs = logs.substring(logs.indexOf('['), logs.length)
+                    this.asd.push(logs);
+                    io.to(name).emit("log", logs);
+                }
+            })
 
             res.status(200).json({message: `Server started! ${name}`})
         } catch(err) {
@@ -158,9 +173,10 @@ class Server {
         }
     }
 
+    // GET
     async getStatusServer(req, res) {
         try {
-            const { containerId } = req.body;
+            const { containerId } = req.query;
             const serverContainer = await docker.getContainer(containerId);
 
             serverContainer.inspect((err, data) => {
@@ -178,40 +194,44 @@ class Server {
     }
 
     
-    // GET
+    // GET - not use
     async LogView(req, res, io) { // Duplicate
-        try {
-            const { containerId, name } = req.query;
-            //console.log(req);
-            //console.log(req.query)
+        // try {
+        //     const { containerId, name } = req.query;
+        //     //console.log(req);
+        //     //console.log(req.query)
 
-            console.log(containerId)
-            const serverContainer = await docker.getContainer(containerId);
+        //     console.log(containerId)
+        //     const serverContainer = await docker.getContainer(containerId);
     
-            const logStream = await serverContainer.logs({
-                follow: true,
-                stdout: true,
-                stderr: true,
-                since: 333,
-            })
-            console.log('-----')
-            logStream.on('data', (chunk) => {
-                io.to(name).emit("log", chunk.toString('utf8'));
-                //console.log(chunk.toString('utf8'));
-            })
+        //     const logStream = await serverContainer.logs({
+        //         follow: true,
+        //         stdout: true,
+        //         stderr: true,
+        //         since: 0,
+        //     })
+        //     console.log('-----')
+        //     logStream.on('data', (chunk) => {
+        //         let logs = chunk.toString('utf8');
+        //         if(logs.indexOf("[Server thread") !== -1) {
+        //             logs = logs.substring(logs.indexOf('['), logs.length)
+        //             io.to(name).emit("log", logs);
+        //         }
+        //         //console.log(chunk.toString('utf8'));
+        //     })
     
-            logStream.on('end', () => {
+        //     logStream.on('end', () => {
                 
-                console.log('Log steam ended');
-                io.to(name).emit('log-end', 'Log stream ended');
-            })
+        //         console.log('Log steam ended');
+        //         io.to(name).emit('log-end', 'Log stream ended');
+        //     })
             
     
-            res.status(200).json({message: "Get logs"});
-        } catch(err) {
-            res.status(400).json({ message: err });
-        }
-        
+        //     res.status(200).json({message: "Get logs"});
+        // } catch(err) {
+        //     res.status(400).json({ message: err });
+        // }
+        //res.status(400).json(this.asd)
     }
 
     async stopServer(req, res) {
