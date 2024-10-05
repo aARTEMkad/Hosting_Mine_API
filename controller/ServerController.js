@@ -128,9 +128,7 @@ class Server {
             res.status(404).json(err);
         }
     }
-    
 
-    asd = [];
     // POST
     async startServer(req, res, io) {
         try {
@@ -147,9 +145,8 @@ class Server {
             
             logStream.on('data', (chunk) => {
                 let logs = chunk.toString('utf8');
-                if(logs.indexOf("[Server thread") !== -1) {
+                if(logs.indexOf("[Server") !== -1) {
                     logs = logs.substring(logs.indexOf('['), logs.length)
-                    this.asd.push(logs);
                     io.to(name).emit("log", logs);
                 }
             })
@@ -194,44 +191,32 @@ class Server {
     }
 
     
-    // GET - not use
-    async LogView(req, res, io) { // Duplicate
-        // try {
-        //     const { containerId, name } = req.query;
-        //     //console.log(req);
-        //     //console.log(req.query)
+    // GET - not use???
+    async LogView(req, res, io) { // Get old log 
+        try{
+            console.log('qwe');
+            const { name } = req.query;
+            const pathToLog = pathBind + name + "/logs/latest.log";
 
-        //     console.log(containerId)
-        //     const serverContainer = await docker.getContainer(containerId);
-    
-        //     const logStream = await serverContainer.logs({
-        //         follow: true,
-        //         stdout: true,
-        //         stderr: true,
-        //         since: 0,
-        //     })
-        //     console.log('-----')
-        //     logStream.on('data', (chunk) => {
-        //         let logs = chunk.toString('utf8');
-        //         if(logs.indexOf("[Server thread") !== -1) {
-        //             logs = logs.substring(logs.indexOf('['), logs.length)
-        //             io.to(name).emit("log", logs);
-        //         }
-        //         //console.log(chunk.toString('utf8'));
-        //     })
-    
-        //     logStream.on('end', () => {
-                
-        //         console.log('Log steam ended');
-        //         io.to(name).emit('log-end', 'Log stream ended');
-        //     })
-            
-    
-        //     res.status(200).json({message: "Get logs"});
-        // } catch(err) {
-        //     res.status(400).json({ message: err });
-        // }
-        //res.status(400).json(this.asd)
+            if(fs.existsSync(pathToLog)) {
+                const data = fs.readFileSync(pathToLog, { encoding: 'utf8'})
+                // ---
+                let tmp = data.split('\n');
+                let logs = [];
+                tmp.forEach(element => {
+                    if(element.indexOf("[Server") !== -1) {
+                        logs.push(element);
+                    } 
+                });
+                // --
+                res.status(200).json({logs: logs});
+            } else {
+                console.log("Nihuja");
+                res.status(404).json({message: "don't found"});
+            }
+        } catch(err) {
+            res.status(400).json({ err: err});
+        }
     }
 
     async stopServer(req, res) {
