@@ -6,6 +6,7 @@ import { Server } from 'socket.io';
 import http from 'http';
 // ----
 import ServerRouter from './router/ServerRouter.js';
+import FileManagerRouter from './router/FileManagerServerRouter.js';
 
 dotenv.config()
 
@@ -49,6 +50,7 @@ mongoose.connect(process.env.URLMDB)
 app.use(express.json())
 app.use(cors())
 
+app.use('/api/server', FileManagerRouter);
 app.use('/api', (req, res, next) => {
     req.io = io;
     next();
