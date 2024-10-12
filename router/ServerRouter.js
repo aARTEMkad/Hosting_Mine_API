@@ -6,7 +6,7 @@ import Server from '../controller/ServerController.js';
 const Router = express.Router()
 const storage = multer.diskStorage({
     destination: (req, file, cb) => {
-        const dest = 'plugins/';
+        const dest = 'temp/plugins/';
         cb(null, dest);
     },
     filename: (req, file, cb) => {
