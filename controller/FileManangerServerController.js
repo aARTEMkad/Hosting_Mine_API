@@ -9,10 +9,11 @@ class FileManagerServerController {
 
     // name/Directory
     getListFiles(req, res) {
-        const { name } = req.body;
+        const { name } = req.query;
         const data = fs.readdirSync(pathBind+name);
 
         console.log(data);
+        data.unshift("..");
         res.json({data: data});
     }
 
@@ -26,7 +27,7 @@ class FileManagerServerController {
     }
 
     getInfoFile(req, res) {
-        const { name, file } = req.body;
+        const { name, file } = req.query;
         const data = fs.readFileSync(pathBind + name + `/${file}`, { encoding: "utf8"});
         console.log(data);
         res.json({data: data});
@@ -42,7 +43,8 @@ class FileManagerServerController {
 
     // pathBind + name + file
     deleteFile(req, res) {
-        const { name, file } = req.body;
+        console.log(req);
+        const { name, file } = req.query;
         fs.rmSync(pathBind+name+`/${file}`, { recursive: true });
 
         res.json({ msg: "Delete file"})
@@ -72,14 +74,23 @@ class FileManagerServerController {
     }
 
     uploadFile(req, res) {
-        const { name, dir } = req.body;
+        // const { name, dir } = req.body;
+        const { dir } = req.body;
         const { path, originalname } = req.file;
 
-        fs.copyFileSync(path, pathBind + name + `${dir != "" ? `/${dir}` : ""}` + `/${originalname}`)
+
+        console.log(dir);
+        console.log( pathBind + `${dir != "" ? `${dir}` : ""}` + `/${originalname}`);
+        fs.copyFileSync(path, pathBind + `${dir != "" ? `${dir}` : ""}` + `/${originalname}`)
         fs.rmSync(path);
 
         res.json({msg: "good"})
     }
+    // temp code for upload file path
+    /*
+        // for search path but two times name 
+        pathBind + name + `${dir != "" ? `/${dir}` : ""}` + `/${originalname}`
+    */
 
 
 

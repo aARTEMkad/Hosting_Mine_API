@@ -130,6 +130,7 @@ class Server {
     }
 
     // POST
+    // FIX 
     async startServer(req, res, io) {
         try {
             const { containerId, name } = req.body;
@@ -145,10 +146,12 @@ class Server {
             
             logStream.on('data', (chunk) => {
                 let logs = chunk.toString('utf8');
-                if(logs.indexOf("[Server") !== -1) {
+                console.log(logs)
+             //   if(logs.indexOf("[Server") !== -1) {
                     logs = logs.substring(logs.indexOf('['), logs.length)
+                    console.log('send hujna');
                     io.to(name).emit("log", logs);
-                }
+              //  }
             })
 
             res.status(200).json({message: `Server started! ${name}`})
