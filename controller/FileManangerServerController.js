@@ -28,6 +28,7 @@ class FileManagerServerController {
 
     getInfoFile(req, res) {
         const { name, file } = req.query;
+        console.log(req.query);
         const data = fs.readFileSync(pathBind + name + `/${file}`, { encoding: "utf8"});
         console.log(data);
         res.json({data: data});
@@ -35,8 +36,8 @@ class FileManagerServerController {
 
     // pathBind + name + file || data
     saveInfoFile(req, res) {
-        const { data, name, file } = req.body;
-        fs.writeFileSync(pathBind+name+`/${file}`, data, { encoding: "utf8"});
+        const { data, path, file } = req.body;
+        fs.writeFileSync(pathBind+path+`/${file}`, data, { encoding: "utf8"});
 
         res.json({msg: "Save succsefuly"});
     }

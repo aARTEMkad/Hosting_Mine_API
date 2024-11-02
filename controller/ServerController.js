@@ -13,8 +13,11 @@ const pathBind = "/home/user/minecraft/server/";
 class Server {
 
     constructor () {
-        // this.startServer = this.startServer.bind(this);
+        this.startServer = this.startServer.bind(this);
+        this.stopServer = this.stopServer.bind(this);
+        this.streamsStatsMap = new Map();
     }
+    
 
     // POST
     async createServer(req, res) { // More write function update java version and container, data base
@@ -110,7 +113,7 @@ class Server {
                     message: 'cannot remove container "/qwe123": container is running: stop the container before removing or force remove'
                  }
             */
-            const Servers = await ServerSchema.findByIdAndDelete(req.params.id);
+            const Servers = await ServerSchema.findByIdAndDelete(req.body.id);
 
             const container = await docker.getContainer(Servers.containerId);
 
@@ -133,7 +136,7 @@ class Server {
     // FIX 
     async startServer(req, res, io) {
         try {
-            const { containerId, name } = req.body;
+            const { containerId, cpus, name } = req.body;
 
             const serverContainer = await docker.getContainer(containerId);
             await serverContainer.start();
@@ -146,12 +149,33 @@ class Server {
             
             logStream.on('data', (chunk) => {
                 let logs = chunk.toString('utf8');
-                console.log(logs)
              //   if(logs.indexOf("[Server") !== -1) {
                     logs = logs.substring(logs.indexOf('['), logs.length)
-                    console.log('send hujna');
                     io.to(name).emit("log", logs);
               //  }
+            })
+
+            const streamStats = await serverContainer.stats({stream: true});
+            this.streamsStatsMap.set(containerId, streamStats)
+            streamStats.on('data', (stats) => {
+                const statsJSON = JSON.parse(stats.toString('utf8')); 
+                const _cpuUsage = serverService.calculateCPUUsage(statsJSON.cpu_stats, statsJSON.precpu_stats, cpus)
+                
+                io.to(name).emit("cpuUsage", _cpuUsage);
+                io.to(name).emit("ramUsage", serverService.convertByteInMByte(statsJSON.memory_stats.usage));
+                io.to(name).emit("ramLimit", serverService.convertByteInMByte(statsJSON.memory_stats.limit));
+                
+                console.log('----------------------------------------NETWORKS')
+                //io.to(name).emit("receivedInternet", serverService.convertByteInMByte(statsJSON.networks.eth0.rx_bytes));
+                //io.to(name).emit("transmittedInternet", serverService.convertByteInMByte(statsJSON.networks.eth0.tx_bytes));
+                
+                
+               // console.log(serverService.convertByteInMByte(statsJSON.networks.eth0.rx_bytes) + "MB") // Received
+               // console.log(serverService.convertByteInMByte(statsJSON.networks.eth0.tx_bytes) + "MB") // Transmitted
+            })            
+
+            streamStats.on('end', () => {
+                console.log('Stoped stats');
             })
 
             res.status(200).json({message: `Server started! ${name}`})
@@ -194,7 +218,7 @@ class Server {
     }
 
     
-    // GET - not use???
+    // GET - not use??? // rename
     async LogView(req, res, io) { // Get old log 
         try{
             console.log('qwe');
@@ -225,10 +249,19 @@ class Server {
     async stopServer(req, res) {
         try {
             const { containerId } = req.body;
-            
             const containerServ = docker.getContainer(containerId);
-
             await containerServ.stop();
+            
+            
+            const streamStats = this.streamsStatsMap.get(containerId);
+           
+            if(streamStats){
+                streamStats.destroy();
+                this.streamsStatsMap.delete(containerId);
+            } else {
+                console.log(`don't delete stream`)
+            }
+
 
             res.status(200).json({message: `Server stopped! ${containerId}`})
 
@@ -240,7 +273,7 @@ class Server {
     // GET
      async statsServer(req, res, io) {  // Undefined eth0
         try {
-            const { containerId, cpus, name } = req.body;
+            const { containerId, cpus, name } = req.query;
             const container = docker.getContainer(containerId);
       //      const data = await container.inspect();
 
@@ -251,7 +284,6 @@ class Server {
 
                 const statsJSON = JSON.parse(stats.toString('utf8')); 
                 console.log('----------------------------------------CPU')
-             
                 const _cpuUsage = serverService.calculateCPUUsage(statsJSON.cpu_stats, statsJSON.precpu_stats, cpus)
 
                 io.to(name).emit("cpuUsage", _cpuUsage);
@@ -265,12 +297,12 @@ class Server {
                 console.log(serverService.convertByteInMByte(statsJSON.memory_stats.limit) + "MB");
              
                 console.log('----------------------------------------NETWORKS')
-                io.to(name).emit("receivedInternet", serverService.convertByteInMByte(statsJSON.networks.eth0.rx_bytes));
-                io.to(name).emit("transmittedInternet", serverService.convertByteInMByte(statsJSON.networks.eth0.tx_bytes));
+                //io.to(name).emit("receivedInternet", serverService.convertByteInMByte(statsJSON.networks.eth0.rx_bytes));
+                //io.to(name).emit("transmittedInternet", serverService.convertByteInMByte(statsJSON.networks.eth0.tx_bytes));
                 
                 
-                console.log(serverService.convertByteInMByte(statsJSON.networks.eth0.rx_bytes) + "MB") // Received
-                console.log(serverService.convertByteInMByte(statsJSON.networks.eth0.tx_bytes) + "MB") // Transmitted
+               // console.log(serverService.convertByteInMByte(statsJSON.networks.eth0.rx_bytes) + "MB") // Received
+               // console.log(serverService.convertByteInMByte(statsJSON.networks.eth0.tx_bytes) + "MB") // Transmitted
             })
 
             streamStats.on('end', () => {

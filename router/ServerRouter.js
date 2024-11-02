@@ -64,7 +64,7 @@ Router.get('/server/:id', Server.getByIdServer);
 
 Router.post('/server', Server.createServer);
 
-Router.delete('/server/:id', Server.deleteServer);
+Router.delete('/server', Server.deleteServer);
 
 Router.post('/server/start', (req, res) => {
     Server.startServer(req, res, req.io);
