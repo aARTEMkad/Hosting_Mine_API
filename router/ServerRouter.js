@@ -1,36 +1,36 @@
 import express from "express";
-import multer from "multer";
+//import multer from "multer";
 
 import Server from '../controller/ServerController.js';
 
 const Router = express.Router()
-const storage = multer.diskStorage({
-    destination: (req, file, cb) => {
-        const dest = 'temp/plugins/';
-        cb(null, dest);
-    },
-    filename: (req, file, cb) => {
-        cb(null, file.originalname)
-    }
-})
+// const storage = multer.diskStorage({
+//     destination: (req, file, cb) => {
+//         const dest = 'temp/plugins/';
+//         cb(null, dest);
+//     },
+//     filename: (req, file, cb) => {
+//         cb(null, file.originalname)
+//     }
+// })
 
-const upload = multer({   
-    storage: storage, 
-    limits: { fileSize: 10 * 1024 * 1024 },
-    // fileFilter: function(req, file, cb) {   make
-    //     let fileTypes = /.jar/;
-    //     let mimetype = fileTypes.test(file.mimetype);
+// const upload = multer({   
+//     storage: storage, 
+//     limits: { fileSize: 10 * 1024 * 1024 },
+//     // fileFilter: function(req, file, cb) {   make
+//     //     let fileTypes = /.jar/;
+//     //     let mimetype = fileTypes.test(file.mimetype);
 
-    //     let extname = fileTypes.test(path.extname(file.originalname).toLowerCase());
+//     //     let extname = fileTypes.test(path.extname(file.originalname).toLowerCase());
 
-    //     if (mimetype && extname) {
-    //         return cb(null, true);
-    //     }
+//     //     if (mimetype && extname) {
+//     //         return cb(null, true);
+//     //     }
 
-    //     cb("Error: File upload only supports the " + "following filetypes - " + fileTypes);
-    // }
+//     //     cb("Error: File upload only supports the " + "following filetypes - " + fileTypes);
+//     // }
 
-});
+// });
 
 
 // ---- Stats server
@@ -45,16 +45,11 @@ Router.get('/server/stats', (req, res) => {
 
 Router.get('/server/status', Server.getStatusServer)
 
-// ---- server.properties
-
-Router.get('/server/server_properties', Server.getServerProperties)
-Router.post('/server/server_properties', Server.updateServerProperties)
-
 // ---- plugins 
 
-Router.get('/server/plugins', Server.getPlugins);
-Router.post('/server/plugins', upload.single('file'), Server.addPlugins);
-Router.delete('/server/plugins', Server.deletePlugins);
+// Router.get('/server/plugins', Server.getPlugins);
+// Router.post('/server/plugins', upload.single('file'), Server.addPlugins);
+// Router.delete('/server/plugins', Server.deletePlugins);
 
 // ---- server
 

@@ -8,6 +8,10 @@ const ServerSchema = new mongoose.Schema({
         required: true,
     },
 
+    description: {
+        type: String
+    },
+
     memory: {
         type: Number,
         required: true,
